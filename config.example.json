@@ -1,0 +1,66 @@
+{
+  "menu": {
+    "placeholder": "📌 Escolha uma opção...",
+    "mainTitle": "📋 Menu Principal — Tudo em um servidor",
+    "mainDescription": "Use o **dropdown abaixo** para acessar as opções. Tudo em um só lugar!"
+  },
+  "options": [
+    {
+      "value": "regras",
+      "label": "📜 Regras",
+      "description": "Ver as regras do servidor",
+      "emoji": "📜"
+    },
+    {
+      "value": "cargos",
+      "label": "🎭 Cargos",
+      "description": "Escolher seus cargos e notificações",
+      "emoji": "🎭"
+    },
+    {
+      "value": "ajuda",
+      "label": "❓ Ajuda",
+      "description": "Comandos e como usar o bot",
+      "emoji": "❓"
+    },
+    {
+      "value": "links",
+      "label": "🔗 Links",
+      "description": "Links importantes do servidor",
+      "emoji": "🔗"
+    },
+    {
+      "value": "info",
+      "label": "ℹ️ Informações",
+      "description": "Sobre o servidor e a equipe",
+      "emoji": "ℹ️"
+    }
+  ],
+  "embeds": {
+    "regras": {
+      "color": "5865f2",
+      "title": "📜 Regras do Servidor",
+      "description": "• Respeite todos os membros\n• Sem spam ou flood\n• Proibido conteúdo ilegal\n• Use os canais corretos\n• Siga as diretrizes do Discord"
+    },
+    "cargos": {
+      "color": "57f287",
+      "title": "🎭 Cargos e Notificações",
+      "description": "Use o canal de cargos para reagir e receber:\n\n• Notícias\n• Eventos\n• Anúncios de jogos\n• Categorias que você curte"
+    },
+    "ajuda": {
+      "color": "fee75c",
+      "title": "❓ Ajuda",
+      "description": "**Comandos disponíveis:**\n\n`/menu` - Abre este menu principal\n`/menu` - Use o dropdown para navegar\n\nTudo em um só lugar — sem precisar de vários servidores!"
+    },
+    "links": {
+      "color": "eb459e",
+      "title": "🔗 Links Úteis",
+      "description": "**Links do servidor:**\n\n• [Convite do servidor](https://discord.gg/seulink)\n• [Site/documentação]\n• [Redes sociais]\n\nEdite no código para seus links!"
+    },
+    "info": {
+      "color": "ed4245",
+      "title": "ℹ️ Informações",
+      "description": "Bem-vindo ao servidor unificado!\n\nAqui você encontra tudo organizado em um só lugar: regras, cargos, links e ajuda — sem precisar ficar entrando em vários servidores."
+    }
+  }
+}

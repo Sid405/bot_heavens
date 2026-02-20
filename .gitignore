@@ -1,0 +1,12 @@
+# Nunca commitar token ou segredos
+.env
+.env.local
+*.env
+
+# Config gerado/alterado pelo site (use config.example.json como base)
+config.json
+
+# Dependências e logs
+node_modules/
+npm-debug.log*
+.DS_Store
