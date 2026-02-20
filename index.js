@@ -11,6 +11,8 @@ const {
   Routes,
 } = require("discord.js");
 const { loadConfig } = require("./config-loader");
+const { configEvents } = require("./config-events");
+const { refreshMenus } = require("./bot-menus");
 
 // ========== CONFIGURAÇÃO (só variáveis de ambiente — nunca coloque token no código) ==========
 const BOT_TOKEN = process.env.DISCORD_BOT_TOKEN;
@@ -36,11 +38,23 @@ function getConfig() {
   return loadConfig();
 }
 
-function getEmbedForOption(value, user) {
+function getPanels() {
   const cfg = getConfig();
-  const opts = cfg.options || [];
-  const embedsConfig = cfg.embeds || {};
-  const data = embedsConfig[value] || embedsConfig.ajuda || { title: "Info", description: "...", color: "5865f2" };
+  return cfg.panels || [];
+}
+
+function getPanelsForChannel(channelId) {
+  const panels = getPanels();
+  const channelPanels = panels.filter((p) => p.channelId && p.channelId === channelId);
+  if (channelPanels.length > 0) return channelPanels;
+  return panels.filter((p) => !p.channelId);
+}
+
+function getEmbedForOption(panelId, value, user) {
+  const panels = getPanels();
+  const panel = panels.find((p) => p.id === panelId);
+  const embedsConfig = panel?.embeds || {};
+  const data = embedsConfig[value] || { title: "Info", description: "...", color: "5865f2" };
 
   const color = parseInt(String(data.color || "5865f2").replace(/^#/, ""), 16);
   const embed = new EmbedBuilder()
@@ -52,13 +66,13 @@ function getEmbedForOption(value, user) {
   return embed;
 }
 
-function createMenuRow() {
-  const cfg = getConfig();
-  const options = cfg.options || [];
-  const placeholder = (cfg.menu && cfg.menu.placeholder) || "📌 Escolha uma opção...";
+function createMenuRow(panel) {
+  const options = panel.options || [];
+  if (options.length === 0) return null;
+  const placeholder = (panel.menu && panel.menu.placeholder) || "📌 Escolha uma opção...";
 
   const selectMenu = new StringSelectMenuBuilder()
-    .setCustomId("main_menu")
+    .setCustomId(`panel_${panel.id}`)
     .setPlaceholder(placeholder)
     .addOptions(
       options.slice(0, 25).map((opt) => ({
@@ -72,9 +86,8 @@ function createMenuRow() {
   return new ActionRowBuilder().addComponents(selectMenu);
 }
 
-function createMainEmbed() {
-  const cfg = getConfig();
-  const menu = cfg.menu || {};
+function createPanelEmbed(panel) {
+  const menu = panel.menu || {};
   return new EmbedBuilder()
     .setColor(0x5865f2)
     .setTitle(menu.mainTitle || "📋 Menu Principal")
@@ -88,7 +101,7 @@ async function registerCommands() {
   const commands = [
     new SlashCommandBuilder()
       .setName("menu")
-      .setDescription("Abre o menu principal com dropdown (tudo em um servidor)"),
+      .setDescription("Abre o menu deste canal (dúvidas, produtos, etc.)"),
   ].map((cmd) => cmd.toJSON());
 
   try {
@@ -103,25 +116,41 @@ async function registerCommands() {
 client.once("ready", async () => {
   console.log(`Bot online: ${client.user.tag}`);
   await registerCommands();
+  await refreshMenus(client, createPanelEmbed, createMenuRow);
+});
 
-  // Inicia a API para o site Lovable configurar o bot (opcional)
-  if (process.env.CONFIG_API_KEY) {
-    require("./api");
-  }
+configEvents.on("saved", async () => {
+  await refreshMenus(client, createPanelEmbed, createMenuRow);
 });
 
 client.on("interactionCreate", async (interaction) => {
   if (interaction.isChatInputCommand() && interaction.commandName === "menu") {
-    await interaction.reply({
-      embeds: [createMainEmbed()],
-      components: [createMenuRow()],
-    });
+    const panels = getPanelsForChannel(interaction.channelId);
+    if (panels.length === 0) {
+      await interaction.reply({ content: "Nenhum painel configurado para este canal.", ephemeral: true });
+      return;
+    }
+    await interaction.deferReply();
+    for (let i = 0; i < panels.length; i++) {
+      const panel = panels[i];
+      const payload = {
+        embeds: [createPanelEmbed(panel)],
+      };
+      const row = createMenuRow(panel);
+      if (row) payload.components = [row];
+      if (i === 0) {
+        await interaction.editReply(payload);
+      } else {
+        await interaction.followUp(payload);
+      }
+    }
     return;
   }
 
-  if (interaction.isStringSelectMenu() && interaction.customId === "main_menu") {
+  if (interaction.isStringSelectMenu() && interaction.customId.startsWith("panel_")) {
+    const panelId = interaction.customId.replace(/^panel_/, "");
     const selected = interaction.values[0];
-    const embed = getEmbedForOption(selected, interaction.user);
+    const embed = getEmbedForOption(panelId, selected, interaction.user);
     await interaction.reply({
       embeds: [embed],
       ephemeral: true,
@@ -134,11 +163,28 @@ client.on("messageCreate", async (message) => {
   const content = message.content.toLowerCase().trim();
   if (content !== "!menu" && content !== "?menu") return;
 
-  await message.reply({
-    embeds: [createMainEmbed()],
-    components: [createMenuRow()],
-  });
+  const panels = getPanelsForChannel(message.channel.id);
+  if (panels.length === 0) {
+    await message.reply("Nenhum painel configurado para este canal.");
+    return;
+  }
+  for (let i = 0; i < panels.length; i++) {
+    const panel = panels[i];
+    const payload = {
+      embeds: [createPanelEmbed(panel)],
+    };
+    const row = createMenuRow(panel);
+    if (row) payload.components = [row];
+    if (i === 0) {
+      await message.reply(payload);
+    } else {
+      await message.channel.send(payload);
+    }
+  }
 });
+
+// ========== SERVIDOR HTTP (porta do Railway = process.env.PORT) ==========
+require("./api");
 
 // ========== INICIAR BOT ==========
 client.login(BOT_TOKEN).catch((err) => {

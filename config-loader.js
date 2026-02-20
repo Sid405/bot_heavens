@@ -1,10 +1,13 @@
 const fs = require("fs");
 const path = require("path");
+const crypto = require("crypto");
 
 const CONFIG_PATH = path.join(__dirname, "config.json");
 const EXAMPLE_PATH = path.join(__dirname, "config.example.json");
 
-const defaultConfig = {
+const defaultPanel = {
+  id: crypto.randomUUID(),
+  name: "Menu Principal",
   menu: {
     placeholder: "📌 Escolha uma opção...",
     mainTitle: "📋 Menu Principal — Tudo em um servidor",
@@ -27,6 +30,10 @@ const defaultConfig = {
   },
 };
 
+const defaultConfig = {
+  panels: [defaultPanel],
+};
+
 function deepMerge(target, source) {
   const out = { ...target };
   for (const key of Object.keys(source || {})) {
@@ -45,23 +52,54 @@ function deepMerge(target, source) {
   return out;
 }
 
+/**
+ * Converte config antigo (menu/options/embeds na raiz) para o novo formato { panels: [...] }.
+ */
+function normalizeConfig(data) {
+  if (Array.isArray(data.panels) && data.panels.length > 0) {
+    return {
+      panels: data.panels.map((p) => ({
+        id: p.id || crypto.randomUUID(),
+        name: p.name || "Menu",
+        channelId: p.channelId || null,
+        menu: { ...defaultPanel.menu, ...(p.menu || {}) },
+        options: Array.isArray(p.options) ? p.options : [],
+        embeds: typeof p.embeds === "object" ? p.embeds : {},
+      })),
+    };
+  }
+  // Compatibilidade: config antigo sem panels
+  return {
+    panels: [
+      {
+        id: crypto.randomUUID(),
+        name: "Menu Principal",
+        menu: { ...defaultPanel.menu, ...(data.menu || {}) },
+        options: Array.isArray(data.options) ? data.options : defaultPanel.options,
+        embeds: typeof data.embeds === "object" ? data.embeds : defaultPanel.embeds,
+      },
+    ],
+  };
+}
+
 function loadConfig() {
   try {
     if (fs.existsSync(CONFIG_PATH)) {
       const raw = fs.readFileSync(CONFIG_PATH, "utf8");
       const data = JSON.parse(raw);
-      return { ...defaultConfig, ...data };
+      return normalizeConfig(data);
     }
   } catch (e) {
     console.warn("Erro ao ler config.json, usando padrão:", e.message);
   }
-  return defaultConfig;
+  return normalizeConfig(defaultConfig);
 }
 
 function saveConfig(newConfig) {
-  const full = deepMerge(defaultConfig, newConfig);
+  const merged = deepMerge(defaultConfig, newConfig);
+  const full = normalizeConfig(merged);
   fs.writeFileSync(CONFIG_PATH, JSON.stringify(full, null, 2), "utf8");
   return full;
 }
 
-module.exports = { loadConfig, saveConfig, CONFIG_PATH, defaultConfig };
+module.exports = { loadConfig, saveConfig, normalizeConfig, CONFIG_PATH, defaultConfig };

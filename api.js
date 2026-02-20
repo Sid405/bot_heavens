@@ -1,18 +1,21 @@
 /**
- * API do painel (dashboard) — tipo Dyno: você configura o bot pelo site.
- * O site Lovable chama esta API para ler e salvar a config.
+ * Servidor HTTP Express — porta definida pelo Railway (process.env.PORT).
+ * GET /api/config — retorna o JSON da configuração atual (config.json).
+ * PATCH /api/config — recebe JSON no body, valida Authorization: Bearer {CONFIG_API_KEY}, salva mesclando com o existente.
+ * CORS habilitado para qualquer origem.
  */
 const express = require("express");
 const cors = require("cors");
 const { saveConfig, loadConfig } = require("./config-loader");
+const { configEvents } = require("./config-events");
 
 const app = express();
-const PORT = process.env.CONFIG_API_PORT || 3001;
+// Railway define process.env.PORT; local usa CONFIG_API_PORT ou 3001
+const PORT = process.env.PORT || process.env.CONFIG_API_PORT || 3001;
 const API_KEY = process.env.CONFIG_API_KEY || "";
 
-// Permite o site (Lovable) em outro domínio chamar esta API
-const CORS_ORIGIN = process.env.CORS_ORIGIN || "*";
-app.use(cors({ origin: CORS_ORIGIN }));
+// CORS habilitado para qualquer origem
+app.use(cors());
 app.use(express.json({ limit: "500kb" }));
 
 function auth(req, res, next) {
@@ -41,24 +44,40 @@ app.get("/api/config", (req, res) => {
 app.post("/api/config", auth, (req, res) => {
   try {
     const updated = saveConfig(req.body);
+    configEvents.emit("saved");
     res.json({ ok: true, config: updated });
   } catch (e) {
     res.status(400).json({ error: e.message });
   }
 });
 
-// PATCH — mesclar só algumas chaves (menu, options, embeds)
+// PATCH — mesclar configuração (suporta { panels: [...] } ou formato antigo menu/options/embeds)
 app.patch("/api/config", auth, (req, res) => {
   try {
     const current = loadConfig();
-    const merged = {
-      ...current,
-      ...req.body,
-      menu: { ...current.menu, ...(req.body.menu || {}) },
-      embeds: { ...current.embeds, ...(req.body.embeds || {}) },
-    };
-    if (Array.isArray(req.body.options)) merged.options = req.body.options;
+    let merged;
+
+    if (Array.isArray(req.body.panels)) {
+      merged = { panels: req.body.panels };
+    } else if (req.body.menu != null || req.body.options != null || req.body.embeds != null) {
+      const first = current.panels?.[0] || {};
+      merged = {
+        panels: [
+          {
+            id: first.id,
+            name: first.name || "Menu Principal",
+            menu: { ...first.menu, ...(req.body.menu || {}) },
+            options: Array.isArray(req.body.options) ? req.body.options : (first.options || []),
+            embeds: { ...first.embeds, ...(req.body.embeds || {}) },
+          },
+          ...(current.panels?.slice(1) || []),
+        ],
+      };
+    } else {
+      merged = { ...current, ...req.body };
+    }
     const updated = saveConfig(merged);
+    configEvents.emit("saved");
     res.json({ ok: true, config: updated });
   } catch (e) {
     res.status(400).json({ error: e.message });
@@ -66,5 +85,5 @@ app.patch("/api/config", auth, (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`API de config ativa em http://localhost:${PORT} (para o site Lovable)`);
+  console.log(`API ativa na porta ${PORT} (GET/PATCH /api/config)`);
 });

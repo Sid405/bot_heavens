@@ -5,6 +5,7 @@
 
 # Config gerado/alterado pelo site (use config.example.json como base)
 config.json
+message-ids.json
 
 # Dependências e logs
 node_modules/
