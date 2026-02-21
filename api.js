@@ -14,9 +14,18 @@ const app = express();
 const PORT = process.env.PORT || process.env.CONFIG_API_PORT || 3001;
 const API_KEY = process.env.CONFIG_API_KEY || "";
 
-// CORS habilitado para qualquer origem
-app.use(cors());
+// CORS — antes de todas as rotas; permite PATCH e preflight OPTIONS
+app.use(
+  cors({
+    origin: true,
+    methods: ["GET", "POST", "PATCH", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
 app.use(express.json({ limit: "500kb" }));
+
+// Preflight OPTIONS para /api/config (navegador envia antes de PATCH)
+app.options("/api/config", (req, res) => res.sendStatus(204));
 
 function auth(req, res, next) {
   if (!API_KEY) {
