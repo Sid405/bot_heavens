@@ -113,7 +113,7 @@ async function registerCommands() {
 }
 
 // ========== EVENTOS ==========
-client.once("ready", async () => {
+client.once("clientReady", async () => {
   console.log(`Bot online: ${client.user.tag}`);
   await registerCommands();
   await refreshMenus(client, createPanelEmbed, createMenuRow);
