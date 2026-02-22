@@ -1,0 +1,54 @@
+{
+  "panels": [
+    {
+      "id": "painel-menu-principal",
+      "name": "Menu Principal",
+      "command": "menu",
+      "menu": {
+        "placeholder": "📌 Escolha uma categoria...",
+        "mainTitle": "📋 Menu Principal",
+        "mainDescription": "Use o **dropdown abaixo** para acessar as categorias. Tudo em um só lugar!"
+      },
+      "options": [
+        { "value": "duvidas",     "label": "❓ Dúvidas",      "description": "Perguntas frequentes",            "emoji": "❓" },
+        { "value": "produtos",    "label": "🛒 Produtos",     "description": "Veja nossos produtos",            "emoji": "🛒" },
+        { "value": "robux",       "label": "💰 Robux",        "description": "Informações sobre Robux",         "emoji": "💰" },
+        { "value": "gamepass",    "label": "🎮 Gamepass",     "description": "Informações sobre Gamepass",      "emoji": "🎮" },
+        { "value": "comocomprar", "label": "💳 Como Comprar", "description": "Passo a passo para comprar",      "emoji": "💳" },
+        { "value": "comoconvidar","label": "👥 Como Convidar","description": "Como convidar amigos ao servidor", "emoji": "👥" }
+      ],
+      "embeds": {
+        "duvidas": {
+          "color": "5865f2",
+          "title": "❓ Dúvidas Frequentes",
+          "description": "Aqui você encontra respostas para as dúvidas mais comuns.\n\n• Tem alguma pergunta? Use os canais de suporte.\n• Leia as regras antes de perguntar.\n• Verifique se a dúvida já foi respondida."
+        },
+        "produtos": {
+          "color": "57f287",
+          "title": "🛒 Produtos",
+          "description": "Confira nossos produtos disponíveis!\n\n• **Robux** — pacotes de moeda do jogo\n• **Gamepass** — passe de acesso especial\n\nEntre em contato para adquirir."
+        },
+        "robux": {
+          "color": "fee75c",
+          "title": "💰 Robux",
+          "description": "**O que é Robux?**\nRobux é a moeda oficial do Roblox.\n\n**Como adquirir:**\n• Acesse o canal de vendas\n• Escolha o pacote desejado\n• Siga as instruções de pagamento\n\nQualquer dúvida, fale com um moderador."
+        },
+        "gamepass": {
+          "color": "eb459e",
+          "title": "🎮 Gamepass",
+          "description": "**O que é Gamepass?**\nGamepass dá acesso a conteúdo exclusivo dentro do jogo.\n\n**Como ativar:**\n• Adquira no canal de vendas\n• Siga as instruções enviadas\n• Aproveite os benefícios!\n\nQualquer dúvida, fale com um moderador."
+        },
+        "comocomprar": {
+          "color": "ed4245",
+          "title": "💳 Como Comprar",
+          "description": "**Passo a passo para comprar:**\n\n1. Acesse o canal de vendas\n2. Escolha o produto desejado\n3. Entre em contato com um vendedor\n4. Informe seu usuário do Roblox\n5. Realize o pagamento conforme instrução\n6. Aguarde a confirmação\n\nSuporte disponível nos canais dedicados."
+        },
+        "comoconvidar": {
+          "color": "57f287",
+          "title": "👥 Como Convidar",
+          "description": "**Como convidar amigos para o servidor:**\n\n1. Clique no nome do servidor\n2. Selecione **Convidar Pessoas**\n3. Copie o link de convite\n4. Envie para seus amigos\n\nOu use o link fixo disponível no canal de convites!"
+        }
+      }
+    }
+  ]
+}

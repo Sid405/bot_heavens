@@ -4,6 +4,7 @@ const crypto = require("crypto");
 
 const CONFIG_PATH = path.join(__dirname, "config.json");
 const EXAMPLE_PATH = path.join(__dirname, "config.example.json");
+const PAINEL_JSON_PATH = process.env.PAINEL_JSON_PATH || path.join(__dirname, "painel.json");
 
 const defaultPanel = {
   id: crypto.randomUUID(),
@@ -98,6 +99,17 @@ function normalizeConfig(data) {
 }
 
 function loadConfig() {
+  // 1. Try painel.json (or PAINEL_JSON_PATH)
+  try {
+    if (fs.existsSync(PAINEL_JSON_PATH)) {
+      const raw = fs.readFileSync(PAINEL_JSON_PATH, "utf8");
+      const data = JSON.parse(raw);
+      return normalizeConfig(data);
+    }
+  } catch (e) {
+    console.warn("Falhou ao ler painel.json, tentando config.json:", e.message);
+  }
+  // 2. Fallback: config.json (backward compat)
   try {
     if (fs.existsSync(CONFIG_PATH)) {
       const raw = fs.readFileSync(CONFIG_PATH, "utf8");
@@ -105,9 +117,10 @@ function loadConfig() {
       return normalizeConfig(data);
     }
   } catch (e) {
-    console.warn("Erro ao ler config.json, usando padrão:", e.message);
+    console.warn("Erro ao ler config.json:", e.message);
   }
-  return normalizeConfig(defaultConfig);
+  // 3. Safe empty default to avoid crash
+  return { panels: [] };
 }
 
 function saveConfig(newConfig) {
@@ -117,4 +130,4 @@ function saveConfig(newConfig) {
   return full;
 }
 
-module.exports = { loadConfig, saveConfig, normalizeConfig, CONFIG_PATH, defaultConfig };
+module.exports = { loadConfig, saveConfig, normalizeConfig, CONFIG_PATH, PAINEL_JSON_PATH, defaultConfig };
