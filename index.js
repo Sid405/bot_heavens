@@ -58,9 +58,11 @@ client.on("messageCreate", async (message) => {
   const command = message.content.slice(PREFIX.length).trim().toLowerCase();
   if (!command) return;
 
+  const normalizeCmd = (c) => (c || "").toLowerCase().replace(/-/g, "");
+
   const config = await getConfigFromAPI();
   const panels = Array.isArray(config.panels) ? config.panels : [];
-  const panel = panels.find((p) => (p.command || "").toLowerCase() === command);
+  const panel = panels.find((p) => normalizeCmd(p.command) === normalizeCmd(command));
 
   if (!panel) {
     const lista = panels
