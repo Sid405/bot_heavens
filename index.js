@@ -18,6 +18,9 @@ const { refreshMenus } = require("./bot-menus");
 // ========== CONFIGURAÇÃO (só variáveis de ambiente — nunca coloque token no código) ==========
 const BOT_TOKEN = process.env.DISCORD_BOT_TOKEN;
 const CLIENT_ID = process.env.DISCORD_CLIENT_ID;
+// URL pública da API (Railway ou outra) usada pelo autocomplete do /menu
+const API_URL = process.env.API_URL || process.env.CONFIG_API_URL || "http://localhost:3001";
+const CONFIG_API_KEY = process.env.CONFIG_API_KEY || "";
 
 if (!BOT_TOKEN || !CLIENT_ID) {
   console.error(
@@ -68,11 +71,14 @@ function getEmbedForOption(panelId, value, user) {
 }
 
 function createMenuRow(panel) {
-  const options = panel.options || [];
+  const options = Array.isArray(panel.options) ? panel.options : [];
   if (options.length === 0) return null;
-  const placeholder = (panel.menu && panel.menu.placeholder) || "📌 Escolha uma opção...";
+
+  const placeholder =
+    (panel.menu && panel.menu.placeholder) || "📌 Escolha uma opção...";
 
   const selectMenu = new StringSelectMenuBuilder()
+    // customId inclui o ID do painel para sabermos de qual painel veio a interação
     .setCustomId(`panel_${panel.id}`)
     .setPlaceholder(placeholder)
     .addOptions(
@@ -132,15 +138,50 @@ configEvents.on("saved", async () => {
 });
 
 client.on("interactionCreate", async (interaction) => {
-  // Autocomplete para /menu painel
+  // Autocomplete para /menu painel — lê painéis da API (/api/config)
   if (interaction.isAutocomplete() && interaction.commandName === "menu") {
-    const panels = getPanelsForChannel(interaction.channelId);
-    const focused = interaction.options.getFocused().toLowerCase();
-    const choices = panels
-      .filter((p) => p.name?.toLowerCase().includes(focused))
-      .slice(0, 25)
-      .map((p) => ({ name: p.name || "Menu", value: p.name || "Menu" }));
-    await interaction.respond(choices.length ? choices : panels.slice(0, 25).map((p) => ({ name: p.name || "Menu", value: p.name || "Menu" })));
+    const focused = interaction.options.getFocused() || "";
+
+    try {
+      const res = await fetch(`${API_URL}/api/config`, {
+        headers: {
+          ...(CONFIG_API_KEY
+            ? { Authorization: `Bearer ${CONFIG_API_KEY}` }
+            : {}),
+        },
+      });
+
+      if (!res.ok) {
+        throw new Error(`Status HTTP ${res.status}`);
+      }
+
+      const config = await res.json();
+      const panels = Array.isArray(config.panels) ? config.panels : [];
+      const focusedLower = focused.toLowerCase();
+
+      const choices = panels
+        .filter(
+          (p) =>
+            typeof p.name === "string" &&
+            p.name.toLowerCase().includes(focusedLower)
+        )
+        .slice(0, 25)
+        .map((p) => ({ name: p.name, value: p.name }));
+
+      await interaction.respond(choices);
+    } catch (err) {
+      // Fallback: usa config local se a API falhar
+      const panels = getPanelsForChannel(interaction.channelId);
+      const focusedLower = focused.toLowerCase();
+
+      const choices = panels
+        .filter((p) => p.name?.toLowerCase().includes(focusedLower))
+        .slice(0, 25)
+        .map((p) => ({ name: p.name || "Menu", value: p.name || "Menu" }));
+
+      await interaction.respond(choices);
+    }
+
     return;
   }
 
