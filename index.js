@@ -101,7 +101,14 @@ async function registerCommands() {
   const commands = [
     new SlashCommandBuilder()
       .setName("menu")
-      .setDescription("Abre o menu deste canal (dúvidas, produtos, etc.)"),
+      .setDescription("Abre o menu deste canal (dúvidas, produtos, etc.)")
+      .addStringOption((opt) =>
+        opt
+          .setName("painel")
+          .setDescription("Nome do painel (opcional)")
+          .setRequired(false)
+          .setAutocomplete(true)
+      ),
   ].map((cmd) => cmd.toJSON());
 
   try {
@@ -124,26 +131,48 @@ configEvents.on("saved", async () => {
 });
 
 client.on("interactionCreate", async (interaction) => {
+  // Autocomplete para /menu painel
+  if (interaction.isAutocomplete() && interaction.commandName === "menu") {
+    const panels = getPanelsForChannel(interaction.channelId);
+    const focused = interaction.options.getFocused().toLowerCase();
+    const choices = panels
+      .filter((p) => p.name?.toLowerCase().includes(focused))
+      .slice(0, 25)
+      .map((p) => ({ name: p.name || "Menu", value: p.name || "Menu" }));
+    await interaction.respond(choices.length ? choices : panels.slice(0, 25).map((p) => ({ name: p.name || "Menu", value: p.name || "Menu" })));
+    return;
+  }
+
   if (interaction.isChatInputCommand() && interaction.commandName === "menu") {
     const panels = getPanelsForChannel(interaction.channelId);
     if (panels.length === 0) {
       await interaction.reply({ content: "Nenhum painel configurado para este canal.", ephemeral: true });
       return;
     }
-    await interaction.deferReply();
-    for (let i = 0; i < panels.length; i++) {
-      const panel = panels[i];
-      const payload = {
-        embeds: [createPanelEmbed(panel)],
-      };
-      const row = createMenuRow(panel);
-      if (row) payload.components = [row];
-      if (i === 0) {
-        await interaction.editReply(payload);
-      } else {
-        await interaction.followUp(payload);
+
+    const painelName = interaction.options.getString("painel");
+    let panel;
+
+    if (!painelName) {
+      panel = panels[0];
+    } else {
+      panel = panels.find((p) => p.name === painelName);
+      if (!panel) {
+        const nomes = panels.map((p) => p.name || "Menu").join(", ");
+        await interaction.reply({
+          content: `Painel não encontrado. Painéis disponíveis: ${nomes}`,
+          ephemeral: true,
+        });
+        return;
       }
     }
+
+    const payload = {
+      embeds: [createPanelEmbed(panel)],
+    };
+    const row = createMenuRow(panel);
+    if (row) payload.components = [row];
+    await interaction.reply(payload);
     return;
   }
 
