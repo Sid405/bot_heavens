@@ -87,7 +87,7 @@ client.on("messageCreate", async (message) => {
 
   if (options.length > 0) {
     const selectMenu = new StringSelectMenuBuilder()
-      .setCustomId(`panel_select_${panel.command || panel.id}`)
+      .setCustomId(`panel_select_${panel.id}`)
       .setPlaceholder(menu.placeholder || "📌 Escolha uma opção...")
       .addOptions(
         options.slice(0, 25).map((opt) => ({
@@ -110,14 +110,12 @@ client.on("interactionCreate", async (interaction) => {
   if (!interaction.isStringSelectMenu()) return;
   if (!interaction.customId.startsWith("panel_select_")) return;
 
-  const command = interaction.customId.replace("panel_select_", "");
+  const panelId = interaction.customId.replace("panel_select_", "");
   const selectedValue = interaction.values[0];
 
   const config = await getConfigFromAPI();
   const panels = Array.isArray(config.panels) ? config.panels : [];
-  const panel = panels.find(
-    (p) => (p.command || "").toLowerCase() === command.toLowerCase() || p.id === command
-  );
+  const panel = panels.find((p) => p.id === panelId);
 
   if (!panel) {
     return interaction.reply({

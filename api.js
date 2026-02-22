@@ -6,8 +6,24 @@
  */
 const express = require("express");
 const cors = require("cors");
-const { saveConfig, loadConfig } = require("./config-loader");
+const { saveConfig, loadConfig, normalizeConfig } = require("./config-loader");
 const { configEvents } = require("./config-events");
+
+/** Valida que não há comandos duplicados entre painéis. Retorna { valid: true } ou { valid: false, error } */
+function validateDuplicateCommands(panels) {
+  if (!Array.isArray(panels) || panels.length === 0) return { valid: true };
+  const normalized = normalizeConfig({ panels });
+  const commands = (normalized.panels || []).map((p) => (p.command || "").toLowerCase().trim());
+  const seen = new Set();
+  for (const cmd of commands) {
+    if (!cmd) continue;
+    if (seen.has(cmd)) {
+      return { valid: false, error: `Comando duplicado: "${cmd}". Cada painel deve ter um comando único.` };
+    }
+    seen.add(cmd);
+  }
+  return { valid: true };
+}
 
 const app = express();
 // Railway define process.env.PORT; local usa CONFIG_API_PORT ou 3001
@@ -52,6 +68,10 @@ app.get("/api/config", (req, res) => {
 // POST — atualizar config (chamado pelo site Lovable)
 app.post("/api/config", auth, (req, res) => {
   try {
+    if (Array.isArray(req.body.panels)) {
+      const check = validateDuplicateCommands(req.body.panels);
+      if (!check.valid) return res.status(400).json({ error: check.error });
+    }
     const updated = saveConfig(req.body);
     configEvents.emit("saved");
     res.json({ ok: true, config: updated });
@@ -67,6 +87,8 @@ app.patch("/api/config", auth, (req, res) => {
     let merged;
 
     if (Array.isArray(req.body.panels)) {
+      const check = validateDuplicateCommands(req.body.panels);
+      if (!check.valid) return res.status(400).json({ error: check.error });
       merged = { panels: req.body.panels };
     } else if (req.body.menu != null || req.body.options != null || req.body.embeds != null) {
       const first = current.panels?.[0] || {};
