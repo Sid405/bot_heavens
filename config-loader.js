@@ -8,6 +8,7 @@ const EXAMPLE_PATH = path.join(__dirname, "config.example.json");
 const defaultPanel = {
   id: crypto.randomUUID(),
   name: "Menu Principal",
+  command: "menu",
   menu: {
     placeholder: "📌 Escolha uma opção...",
     mainTitle: "📋 Menu Principal — Tudo em um servidor",
@@ -58,14 +59,27 @@ function deepMerge(target, source) {
 function normalizeConfig(data) {
   if (Array.isArray(data.panels) && data.panels.length > 0) {
     return {
-      panels: data.panels.map((p) => ({
-        id: p.id || crypto.randomUUID(),
-        name: p.name || "Menu",
-        channelId: p.channelId || null,
-        menu: { ...defaultPanel.menu, ...(p.menu || {}) },
-        options: Array.isArray(p.options) ? p.options : [],
-        embeds: typeof p.embeds === "object" ? p.embeds : {},
-      })),
+      panels: data.panels.map((p) => {
+        const name = p.name || "Menu";
+        const command =
+          p.command ||
+          String(name)
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .replace(/\s+/g, "-")
+            .replace(/[^a-z0-9-]/g, "") ||
+          "menu";
+        return {
+          id: p.id || crypto.randomUUID(),
+          name,
+          command,
+          channelId: p.channelId || null,
+          menu: { ...defaultPanel.menu, ...(p.menu || {}) },
+          options: Array.isArray(p.options) ? p.options : [],
+          embeds: typeof p.embeds === "object" ? p.embeds : {},
+        };
+      }),
     };
   }
   // Compatibilidade: config antigo sem panels
@@ -74,6 +88,7 @@ function normalizeConfig(data) {
       {
         id: crypto.randomUUID(),
         name: "Menu Principal",
+        command: "menu",
         menu: { ...defaultPanel.menu, ...(data.menu || {}) },
         options: Array.isArray(data.options) ? data.options : defaultPanel.options,
         embeds: typeof data.embeds === "object" ? data.embeds : defaultPanel.embeds,

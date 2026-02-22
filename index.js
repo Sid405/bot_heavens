@@ -1,4 +1,4 @@
-// Discord Bot — atualizado com /menu painel e autocomplete
+// Discord Bot — comandos de prefixo ... (ex: ...grupo, ...menu, ...duvidas)
 require("dotenv").config();
 
 const {
@@ -7,18 +7,13 @@ const {
   EmbedBuilder,
   ActionRowBuilder,
   StringSelectMenuBuilder,
-  SlashCommandBuilder,
-  REST,
-  Routes,
 } = require("discord.js");
 const { loadConfig } = require("./config-loader");
-const { configEvents } = require("./config-events");
-const { refreshMenus } = require("./bot-menus");
 
 // ========== CONFIGURAÇÃO (só variáveis de ambiente — nunca coloque token no código) ==========
 const BOT_TOKEN = process.env.DISCORD_BOT_TOKEN;
 const CLIENT_ID = process.env.DISCORD_CLIENT_ID;
-// URL pública da API (Railway ou outra) usada pelo autocomplete do /menu
+const PREFIX = "...";
 const API_URL = process.env.API_URL || process.env.CONFIG_API_URL || "http://localhost:3001";
 const CONFIG_API_KEY = process.env.CONFIG_API_KEY || "";
 
@@ -37,221 +32,119 @@ const client = new Client({
   ],
 });
 
-// ========== EMBEDS E MENU A PARTIR DO CONFIG (editável pelo site Lovable) ==========
-function getConfig() {
-  return loadConfig();
-}
-
-function getPanels() {
-  const cfg = getConfig();
-  return cfg.panels || [];
-}
-
-function getPanelsForChannel(channelId) {
-  const panels = getPanels();
-  const channelPanels = panels.filter((p) => p.channelId && p.channelId === channelId);
-  if (channelPanels.length > 0) return channelPanels;
-  return panels.filter((p) => !p.channelId);
-}
-
-function getEmbedForOption(panelId, value, user) {
-  const panels = getPanels();
-  const panel = panels.find((p) => p.id === panelId);
-  const embedsConfig = panel?.embeds || {};
-  const data = embedsConfig[value] || { title: "Info", description: "...", color: "5865f2" };
-
-  const color = parseInt(String(data.color || "5865f2").replace(/^#/, ""), 16);
-  const embed = new EmbedBuilder()
-    .setColor(color)
-    .setTitle(data.title || value)
-    .setDescription(data.description || "")
-    .setFooter({ text: `Solicitado por ${user.tag}` })
-    .setTimestamp();
-  return embed;
-}
-
-function createMenuRow(panel) {
-  const options = Array.isArray(panel.options) ? panel.options : [];
-  if (options.length === 0) return null;
-
-  const placeholder =
-    (panel.menu && panel.menu.placeholder) || "📌 Escolha uma opção...";
-
-  const selectMenu = new StringSelectMenuBuilder()
-    // customId inclui o ID do painel para sabermos de qual painel veio a interação
-    .setCustomId(`panel_${panel.id}`)
-    .setPlaceholder(placeholder)
-    .addOptions(
-      options.slice(0, 25).map((opt) => ({
-        label: opt.label,
-        value: opt.value,
-        description: opt.description || "",
-        emoji: opt.emoji || undefined,
-      }))
-    );
-
-  return new ActionRowBuilder().addComponents(selectMenu);
-}
-
-function createPanelEmbed(panel) {
-  const menu = panel.menu || {};
-  return new EmbedBuilder()
-    .setColor(0x5865f2)
-    .setTitle(menu.mainTitle || "📋 Menu Principal")
-    .setDescription(menu.mainDescription || "Use o dropdown abaixo para acessar as opções.")
-    .setTimestamp();
-}
-
-// ========== COMANDO SLASH /menu ==========
-async function registerCommands() {
-  const rest = new REST({ version: "10" }).setToken(BOT_TOKEN);
-  const commands = [
-    new SlashCommandBuilder()
-      .setName("menu")
-      .setDescription("Abre o menu deste canal (dúvidas, produtos, etc.)")
-      .addStringOption((opt) =>
-        opt
-          .setName("painel")
-          .setDescription("Nome do painel (opcional)")
-          .setRequired(false)
-          .setAutocomplete(true)
-      ),
-  ].map((cmd) => cmd.toJSON());
-
+// ========== BUSCAR CONFIG (API ou local) ==========
+async function getConfigFromAPI() {
   try {
-    await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commands });
-    console.log("Comandos slash registrados.");
-  } catch (e) {
-    console.warn("Aviso: não foi possível registrar comandos globais.", e.message);
+    const res = await fetch(`${API_URL}/api/config`, {
+      headers: CONFIG_API_KEY ? { Authorization: `Bearer ${CONFIG_API_KEY}` } : {},
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch {
+    return loadConfig();
   }
 }
 
 // ========== EVENTOS ==========
-client.once("clientReady", async () => {
-  console.log(`Bot online: ${client.user.tag}`);
-  await registerCommands();
-  await refreshMenus(client, createPanelEmbed, createMenuRow);
+client.once("clientReady", () => {
+  console.log(`Bot online: ${client.user.tag} — prefixo: ${PREFIX}comando`);
 });
 
-configEvents.on("saved", async () => {
-  await refreshMenus(client, createPanelEmbed, createMenuRow);
+// Listener de comandos de prefixo (ex: ...grupo, ...menu)
+client.on("messageCreate", async (message) => {
+  if (message.author.bot) return;
+  if (!message.content.startsWith(PREFIX)) return;
+
+  const command = message.content.slice(PREFIX.length).trim().toLowerCase();
+  if (!command) return;
+
+  const config = await getConfigFromAPI();
+  const panels = Array.isArray(config.panels) ? config.panels : [];
+  const panel = panels.find((p) => (p.command || "").toLowerCase() === command);
+
+  if (!panel) {
+    const lista = panels
+      .map((p) => `\`${PREFIX}${p.command || "menu"}\``)
+      .join(", ");
+    return message.reply({
+      content: `Comando não encontrado. Comandos disponíveis: ${lista}`,
+    });
+  }
+
+  try {
+    await message.delete();
+  } catch {
+    // Sem permissão para deletar — ignora
+  }
+
+  const menu = panel.menu || {};
+  const embed = new EmbedBuilder()
+    .setTitle(menu.mainTitle || "📋 Menu")
+    .setDescription(menu.mainDescription || "Use o dropdown abaixo.")
+    .setColor(0x2b2d31);
+
+  const options = Array.isArray(panel.options) ? panel.options : [];
+
+  if (options.length > 0) {
+    const selectMenu = new StringSelectMenuBuilder()
+      .setCustomId(`panel_select_${panel.command || panel.id}`)
+      .setPlaceholder(menu.placeholder || "📌 Escolha uma opção...")
+      .addOptions(
+        options.slice(0, 25).map((opt) => ({
+          label: opt.label,
+          value: opt.value,
+          description: opt.description || undefined,
+          emoji: opt.emoji || undefined,
+        }))
+      );
+
+    const row = new ActionRowBuilder().addComponents(selectMenu);
+    await message.channel.send({ embeds: [embed], components: [row] });
+  } else {
+    await message.channel.send({ embeds: [embed] });
+  }
 });
 
+// Handler do dropdown (SelectMenu)
 client.on("interactionCreate", async (interaction) => {
-  // Autocomplete para /menu painel — lê painéis da API (/api/config)
-  if (interaction.isAutocomplete() && interaction.commandName === "menu") {
-    const focused = interaction.options.getFocused() || "";
+  if (!interaction.isStringSelectMenu()) return;
+  if (!interaction.customId.startsWith("panel_select_")) return;
 
-    try {
-      const res = await fetch(`${API_URL}/api/config`, {
-        headers: {
-          ...(CONFIG_API_KEY
-            ? { Authorization: `Bearer ${CONFIG_API_KEY}` }
-            : {}),
-        },
-      });
+  const command = interaction.customId.replace("panel_select_", "");
+  const selectedValue = interaction.values[0];
 
-      if (!res.ok) {
-        throw new Error(`Status HTTP ${res.status}`);
-      }
+  const config = await getConfigFromAPI();
+  const panels = Array.isArray(config.panels) ? config.panels : [];
+  const panel = panels.find(
+    (p) => (p.command || "").toLowerCase() === command.toLowerCase() || p.id === command
+  );
 
-      const config = await res.json();
-      const panels = Array.isArray(config.panels) ? config.panels : [];
-      const focusedLower = focused.toLowerCase();
-
-      const choices = panels
-        .filter(
-          (p) =>
-            typeof p.name === "string" &&
-            p.name.toLowerCase().includes(focusedLower)
-        )
-        .slice(0, 25)
-        .map((p) => ({ name: p.name, value: p.name }));
-
-      await interaction.respond(choices);
-    } catch (err) {
-      // Fallback: usa config local se a API falhar
-      const panels = getPanelsForChannel(interaction.channelId);
-      const focusedLower = focused.toLowerCase();
-
-      const choices = panels
-        .filter((p) => p.name?.toLowerCase().includes(focusedLower))
-        .slice(0, 25)
-        .map((p) => ({ name: p.name || "Menu", value: p.name || "Menu" }));
-
-      await interaction.respond(choices);
-    }
-
-    return;
-  }
-
-  if (interaction.isChatInputCommand() && interaction.commandName === "menu") {
-    const panels = getPanelsForChannel(interaction.channelId);
-    if (panels.length === 0) {
-      await interaction.reply({ content: "Nenhum painel configurado para este canal.", ephemeral: true });
-      return;
-    }
-
-    const painelName = interaction.options.getString("painel");
-    let panel;
-
-    if (!painelName) {
-      panel = panels[0];
-    } else {
-      panel = panels.find((p) => p.name === painelName);
-      if (!panel) {
-        const nomes = panels.map((p) => p.name || "Menu").join(", ");
-        await interaction.reply({
-          content: `Painel não encontrado. Painéis disponíveis: ${nomes}`,
-          ephemeral: true,
-        });
-        return;
-      }
-    }
-
-    const payload = {
-      embeds: [createPanelEmbed(panel)],
-    };
-    const row = createMenuRow(panel);
-    if (row) payload.components = [row];
-    await interaction.reply(payload);
-    return;
-  }
-
-  if (interaction.isStringSelectMenu() && interaction.customId.startsWith("panel_")) {
-    const panelId = interaction.customId.replace(/^panel_/, "");
-    const selected = interaction.values[0];
-    const embed = getEmbedForOption(panelId, selected, interaction.user);
-    await interaction.reply({
-      embeds: [embed],
+  if (!panel) {
+    return interaction.reply({
+      content: "Painel não encontrado.",
       ephemeral: true,
     });
   }
-});
 
-client.on("messageCreate", async (message) => {
-  if (message.author.bot) return;
-  const content = message.content.toLowerCase().trim();
-  if (content !== "!menu" && content !== "?menu") return;
+  const embedsConfig = panel.embeds || {};
+  const embedData = embedsConfig[selectedValue];
 
-  const panels = getPanelsForChannel(message.channel.id);
-  if (panels.length === 0) {
-    await message.reply("Nenhum painel configurado para este canal.");
-    return;
+  if (!embedData) {
+    return interaction.reply({
+      content: "Embed não configurado para esta opção.",
+      ephemeral: true,
+    });
   }
-  for (let i = 0; i < panels.length; i++) {
-    const panel = panels[i];
-    const payload = {
-      embeds: [createPanelEmbed(panel)],
-    };
-    const row = createMenuRow(panel);
-    if (row) payload.components = [row];
-    if (i === 0) {
-      await message.reply(payload);
-    } else {
-      await message.channel.send(payload);
-    }
-  }
+
+  const color = parseInt(String(embedData.color || "5865f2").replace(/^#/, ""), 16) || 0x2b2d31;
+  const embed = new EmbedBuilder()
+    .setTitle(embedData.title || selectedValue)
+    .setDescription(embedData.description || "")
+    .setColor(color)
+    .setFooter({ text: `Solicitado por ${interaction.user.tag}` })
+    .setTimestamp();
+
+  await interaction.reply({ embeds: [embed], ephemeral: true });
 });
 
 // ========== SERVIDOR HTTP (porta do Railway = process.env.PORT) ==========
@@ -259,7 +152,7 @@ require("./api");
 
 // ========== INICIAR BOT ==========
 client.login(BOT_TOKEN).catch((err) => {
-  console.error("Erro ao conectar. Verifique o token no .env (e se regenerou o token após vazamento).");
+  console.error("Erro ao conectar. Verifique o token no .env.");
   console.error(err);
   process.exit(1);
 });
