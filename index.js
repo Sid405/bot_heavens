@@ -144,6 +144,17 @@ client.on("interactionCreate", async (interaction) => {
     .setFooter({ text: `Solicitado por ${interaction.user.tag}` })
     .setTimestamp();
 
+  if (embedData.image) {
+    embed.setImage(embedData.image);
+  }
+  if (embedData.thumbnail) {
+    embed.setThumbnail(embedData.thumbnail);
+  }
+  if (embedData.video) {
+    const currentDesc = embed.data.description || "";
+    embed.setDescription(currentDesc + "\n\n" + embedData.video);
+  }
+
   await interaction.reply({ embeds: [embed], ephemeral: true });
 });
 
