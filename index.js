@@ -1,3 +1,4 @@
+// Discord Bot — atualizado com /menu painel e autocomplete
 require("dotenv").config();
 
 const {
