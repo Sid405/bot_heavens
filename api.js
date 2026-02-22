@@ -93,6 +93,7 @@ app.patch("/api/config", auth, (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
+// Railway precisa escutar em 0.0.0.0 para aceitar conexões externas
+app.listen(PORT, "0.0.0.0", () => {
   console.log(`API ativa na porta ${PORT} (GET/PATCH /api/config)`);
 });
