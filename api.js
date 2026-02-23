@@ -6,8 +6,9 @@
  */
 const express = require("express");
 const cors = require("cors");
-const { saveConfig, loadConfig, normalizeConfig } = require("./config-loader");
+const { normalizeConfig } = require("./config-loader");
 const { configEvents } = require("./config-events");
+const Config = require("./models/Config");
 
 /** Valida que não há comandos duplicados entre painéis. Retorna { valid: true } ou { valid: false, error } */
 function validateDuplicateCommands(panels) {
@@ -56,34 +57,36 @@ function auth(req, res, next) {
 }
 
 // GET — ler config atual (para o site exibir)
-app.get("/api/config", (req, res) => {
+app.get("/api/config", async (req, res) => {
   try {
-    const config = loadConfig();
-    res.json(config);
+    const doc = await Config.findById("main");
+    res.json(doc ? doc.toObject() : { panels: [] });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
 });
 
 // POST — atualizar config (chamado pelo site Lovable)
-app.post("/api/config", auth, (req, res) => {
+app.post("/api/config", auth, async (req, res) => {
   try {
     if (Array.isArray(req.body.panels)) {
       const check = validateDuplicateCommands(req.body.panels);
       if (!check.valid) return res.status(400).json({ error: check.error });
     }
-    const updated = saveConfig(req.body);
+    const normalized = normalizeConfig(req.body);
+    await Config.findByIdAndUpdate("main", { panels: normalized.panels }, { upsert: true, new: true, setDefaultsOnInsert: true });
     configEvents.emit("saved");
-    res.json({ ok: true, config: updated });
+    res.json({ ok: true, config: normalized });
   } catch (e) {
     res.status(400).json({ error: e.message });
   }
 });
 
 // PATCH — mesclar configuração (suporta { panels: [...] } ou formato antigo menu/options/embeds)
-app.patch("/api/config", auth, (req, res) => {
+app.patch("/api/config", auth, async (req, res) => {
   try {
-    const current = loadConfig();
+    const doc = await Config.findById("main");
+    const current = doc ? doc.toObject() : { panels: [] };
     let merged;
 
     if (Array.isArray(req.body.panels)) {
@@ -107,9 +110,10 @@ app.patch("/api/config", auth, (req, res) => {
     } else {
       merged = { ...current, ...req.body };
     }
-    const updated = saveConfig(merged);
+    const normalized = normalizeConfig(merged);
+    await Config.findByIdAndUpdate("main", { panels: normalized.panels }, { upsert: true, new: true, setDefaultsOnInsert: true });
     configEvents.emit("saved");
-    res.json({ ok: true, config: updated });
+    res.json({ ok: true, config: normalized });
   } catch (e) {
     res.status(400).json({ error: e.message });
   }
