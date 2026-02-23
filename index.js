@@ -88,23 +88,55 @@ client.on("messageCreate", async (message) => {
 
   const options = Array.isArray(panel.options) ? panel.options : [];
 
-  if (options.length > 0) {
-    const selectMenu = new StringSelectMenuBuilder()
-      .setCustomId(`panel_select_${panel.id}`)
-      .setPlaceholder(menu.placeholder || "📌 Escolha uma opção...")
-      .addOptions(
-        options.slice(0, 25).map((opt) => ({
-          label: opt.label,
-          value: opt.value,
-          description: opt.description || undefined,
-          emoji: opt.emoji || undefined,
-        }))
-      );
+  const validOptions = options
+    .filter(
+      (opt) =>
+        opt &&
+        opt.label &&
+        opt.label.trim().length >= 1 &&
+        opt.value &&
+        opt.value.trim().length >= 1
+    )
+    .slice(0, 25)
+    .map((opt) => {
+      const item = {
+        label: opt.label.trim().slice(0, 100),
+        value: opt.value.trim().slice(0, 100),
+      };
+      if (opt.description && opt.description.trim().length > 0) {
+        item.description = opt.description.trim().slice(0, 100);
+      }
+      if (opt.emoji) {
+        item.emoji = opt.emoji;
+      }
+      return item;
+    });
 
-    const row = new ActionRowBuilder().addComponents(selectMenu);
-    await message.channel.send({ embeds: [embed], components: [row] });
-  } else {
-    await message.channel.send({ embeds: [embed] });
+  try {
+    if (validOptions.length > 0) {
+      const selectMenu = new StringSelectMenuBuilder()
+        .setCustomId(`panel_select_${panel.id}`)
+        .setPlaceholder(menu.placeholder || "📌 Escolha uma opção...")
+        .addOptions(validOptions);
+
+      const row = new ActionRowBuilder().addComponents(selectMenu);
+      await message.channel.send({ embeds: [embed], components: [row] });
+    } else if (options.length > 0) {
+      const errorEmbed = new EmbedBuilder()
+        .setTitle("⚠️ Configuração inválida")
+        .setDescription(
+          "Nenhuma opção válida encontrada. Verifique as opções no painel e certifique-se de que label e value estão preenchidos."
+        )
+        .setColor(0xff0000);
+      await message.channel.send({ embeds: [errorEmbed] });
+    } else {
+      await message.channel.send({ embeds: [embed] });
+    }
+  } catch (err) {
+    console.error("Erro ao montar menu:", err);
+    await message.channel.send({
+      content: "Erro ao montar o menu. Verifique a configuração no painel.",
+    });
   }
 });
 
@@ -138,22 +170,83 @@ client.on("interactionCreate", async (interaction) => {
   }
 
   const color = parseInt(String(embedData.color || "5865f2").replace(/^#/, ""), 16) || 0x2b2d31;
+
+  // Build description, optionally appending video
+  let description = embedData.description || "";
+  if (embedData.video) {
+    const videoLine = `\n\n🎥 ${embedData.video}`;
+    if (description.length + videoLine.length <= 4096) {
+      description = description + videoLine;
+    } else {
+      const maxDescLen = 4096 - videoLine.length;
+      if (maxDescLen > 0) {
+        description = description.slice(0, maxDescLen) + videoLine;
+      }
+    }
+  }
+
   const embed = new EmbedBuilder()
     .setTitle(embedData.title || selectedValue)
-    .setDescription(embedData.description || "")
-    .setColor(color)
-    .setFooter({ text: `Solicitado por ${interaction.user.tag}` })
-    .setTimestamp();
+    .setDescription(description)
+    .setColor(color);
 
-  if (embedData.image) {
-    embed.setImage(embedData.image);
+  // URL do título
+  if (embedData.url) embed.setURL(embedData.url);
+
+  // Author
+  if (embedData.author?.name && embedData.author.name.trim().length > 0) {
+    const authorData = { name: embedData.author.name.trim() };
+    if (embedData.author.url) authorData.url = embedData.author.url;
+    if (embedData.author.iconUrl) authorData.iconURL = embedData.author.iconUrl;
+    embed.setAuthor(authorData);
   }
-  if (embedData.thumbnail) {
-    embed.setThumbnail(embedData.thumbnail);
+
+  // Image / Thumbnail
+  if (embedData.image) embed.setImage(embedData.image);
+  if (embedData.thumbnail) embed.setThumbnail(embedData.thumbnail);
+
+  // Fields
+  if (Array.isArray(embedData.fields)) {
+    const validFields = embedData.fields
+      .filter(
+        (f) =>
+          f &&
+          f.name &&
+          f.name.trim().length > 0 &&
+          f.value &&
+          f.value.trim().length > 0
+      )
+      .slice(0, 25)
+      .map((f) => ({
+        name: f.name.trim().slice(0, 256),
+        value: f.value.trim().slice(0, 1024),
+        inline: Boolean(f.inline),
+      }));
+    if (validFields.length > 0) embed.addFields(validFields);
   }
-  if (embedData.video) {
-    const currentDesc = embed.data.description || "";
-    embed.setDescription(currentDesc + "\n\n" + embedData.video);
+
+  // Footer and Timestamp
+  if (embedData.footer?.text && embedData.footer.text.trim().length > 0) {
+    const footerData = { text: embedData.footer.text.trim() };
+    if (embedData.footer.iconUrl) footerData.iconURL = embedData.footer.iconUrl;
+    embed.setFooter(footerData);
+    if (embedData.footer.timestamp) {
+      if (
+        embedData.footer.timestamp === "now" ||
+        embedData.footer.timestamp === "agora"
+      ) {
+        embed.setTimestamp();
+      } else {
+        const ts = new Date(embedData.footer.timestamp);
+        if (!isNaN(ts.getTime())) {
+          embed.setTimestamp(ts);
+        } else {
+          console.warn(`[embed] Timestamp inválido ignorado: "${embedData.footer.timestamp}"`);
+        }
+      }
+    }
+  } else {
+    embed.setFooter({ text: `Solicitado por ${interaction.user.tag}` }).setTimestamp();
   }
 
   await interaction.reply({ embeds: [embed], ephemeral: true });
