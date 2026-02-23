@@ -124,10 +124,9 @@ function loadConfig() {
 }
 
 function saveConfig(newConfig) {
+  // Mantido apenas para compatibilidade retroativa; persistência real é feita via MongoDB.
   const merged = deepMerge(defaultConfig, newConfig);
-  const full = normalizeConfig(merged);
-  fs.writeFileSync(CONFIG_PATH, JSON.stringify(full, null, 2), "utf8");
-  return full;
+  return normalizeConfig(merged);
 }
 
 module.exports = { loadConfig, saveConfig, normalizeConfig, CONFIG_PATH, PAINEL_JSON_PATH, defaultConfig };

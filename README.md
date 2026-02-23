@@ -130,6 +130,20 @@ Veja **`config.example.json`** para ver todos os campos (menu, options, embeds).
 
 ---
 
+## Variáveis de ambiente
+
+| Variável | Descrição |
+|---|---|
+| `DISCORD_BOT_TOKEN` | Token do bot Discord |
+| `DISCORD_CLIENT_ID` | Client ID da aplicação Discord |
+| `MONGODB_URI` | String de conexão do MongoDB Atlas (ex: `mongodb+srv://user:pass@cluster.mongodb.net/dbname`) |
+| `CONFIG_API_KEY` | Chave secreta para autenticar chamadas à API de config |
+| `CONFIG_API_PORT` | Porta local da API (padrão: `3001`) |
+
+> **Importante**: A configuração do bot é agora persistida no **MongoDB Atlas** (via `MONGODB_URI`). Em ambientes com filesystem efêmero (Railway, Render, etc.), as alterações feitas pelo dashboard Lovable serão preservadas entre deploys e reinícios.
+
+---
+
 ## Personalizar sem site
 
 - **config.json** — copie `config.example.json` para `config.json` e edite. O bot lê esse arquivo a cada uso do menu.
@@ -148,7 +162,7 @@ Para deixar o bot online 24/7, você pode hospedar em:
 2. Acesse https://railway.app e faça login com GitHub
 3. **New Project** → **Deploy from GitHub repo**
 4. Selecione seu repositório
-5. Em **Variables**, adicione: `DISCORD_BOT_TOKEN`, `DISCORD_CLIENT_ID` (e opcionalmente `CONFIG_API_KEY`, `CONFIG_API_PORT`)
+5. Em **Variables**, adicione: `DISCORD_BOT_TOKEN`, `DISCORD_CLIENT_ID`, `MONGODB_URI` (string de conexão do MongoDB Atlas) e opcionalmente `CONFIG_API_KEY`, `CONFIG_API_PORT`
 6. Pronto! Bot online 24/7.
 
 **Limite grátis:** $5 de crédito/mês (suficiente para bot simples).

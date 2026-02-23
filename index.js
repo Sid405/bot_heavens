@@ -9,6 +9,7 @@ const {
   StringSelectMenuBuilder,
 } = require("discord.js");
 const { loadConfig } = require("./config-loader");
+const { connectDB } = require("./db");
 
 // ========== CONFIGURAÇÃO (só variáveis de ambiente — nunca coloque token no código) ==========
 const BOT_TOKEN = process.env.DISCORD_BOT_TOKEN;
@@ -161,9 +162,11 @@ client.on("interactionCreate", async (interaction) => {
 // ========== SERVIDOR HTTP (porta do Railway = process.env.PORT) ==========
 require("./api");
 
-// ========== INICIAR BOT ==========
-client.login(BOT_TOKEN).catch((err) => {
-  console.error("Erro ao conectar. Verifique o token no .env.");
-  console.error(err);
-  process.exit(1);
+// ========== CONECTAR AO MONGODB E INICIAR BOT ==========
+connectDB().then(() => {
+  client.login(BOT_TOKEN).catch((err) => {
+    console.error("Erro ao conectar. Verifique o token no .env.");
+    console.error(err);
+    process.exit(1);
+  });
 });
