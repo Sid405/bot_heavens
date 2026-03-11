@@ -56,10 +56,12 @@ function deepMerge(target, source) {
 
 /**
  * Converte config antigo (menu/options/embeds na raiz) para o novo formato { panels: [...] }.
+ * Preserva a seção `store` se presente.
  */
 function normalizeConfig(data) {
+  let result;
   if (Array.isArray(data.panels) && data.panels.length > 0) {
-    return {
+    result = {
       panels: data.panels.map((p) => {
         const name = p.name || "Menu";
         const command =
@@ -82,20 +84,28 @@ function normalizeConfig(data) {
         };
       }),
     };
+  } else {
+    // Compatibilidade: config antigo sem panels
+    result = {
+      panels: [
+        {
+          id: crypto.randomUUID(),
+          name: "Menu Principal",
+          command: "menu",
+          menu: { ...defaultPanel.menu, ...(data.menu || {}) },
+          options: Array.isArray(data.options) ? data.options : defaultPanel.options,
+          embeds: typeof data.embeds === "object" ? data.embeds : defaultPanel.embeds,
+        },
+      ],
+    };
   }
-  // Compatibilidade: config antigo sem panels
-  return {
-    panels: [
-      {
-        id: crypto.randomUUID(),
-        name: "Menu Principal",
-        command: "menu",
-        menu: { ...defaultPanel.menu, ...(data.menu || {}) },
-        options: Array.isArray(data.options) ? data.options : defaultPanel.options,
-        embeds: typeof data.embeds === "object" ? data.embeds : defaultPanel.embeds,
-      },
-    ],
-  };
+
+  // Preserva a seção store (configurações da loja) se presente
+  if (data.store && typeof data.store === "object") {
+    result.store = data.store;
+  }
+
+  return result;
 }
 
 function loadConfig() {
