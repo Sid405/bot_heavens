@@ -68,6 +68,35 @@ CONFIG_API_PORT=3001
 
 Se você **não** colocar `CONFIG_API_KEY`, o bot roda normal, mas a API do painel não sobe. O bot (comando `/menu`) funciona do mesmo jeito.
 
+### Opcional: loja de Robux e Gamepass (`/loja`)
+
+Para usar os comandos `/loja` e `/pedidos-pendentes`, adicione ao `.env`:
+
+```env
+# ID da categoria do Discord onde os tickets de compra serão criados
+SHOP_CATEGORY_ID=123456789012345678
+
+# Preço de 1 Robux em reais (ex: 0.035 = R$ 0,035 por Robux)
+ROBUX_PRICE_BRL=0.035
+
+# Chave PIX para geração do código Copia e Cola (deixe em branco para usar placeholder)
+PIX_KEY=sua_chave_pix_aqui
+PIX_MERCHANT_NAME=Nome da Loja
+PIX_CITY=Sua Cidade
+```
+
+| Variável | Obrigatória? | Descrição |
+|---|---|---|
+| `SHOP_CATEGORY_ID` | Não (padrão: `1395903305623932979`) | ID da categoria onde os tickets são criados |
+| `ROBUX_PRICE_BRL` | Não (padrão: `0.035`) | Valor em reais por unidade de Robux |
+| `PIX_KEY` | Não | Chave PIX (CPF, email, celular ou chave aleatória). Se vazia, exibe placeholder |
+| `PIX_MERCHANT_NAME` | Não (padrão: `Loja`) | Nome que aparece no código PIX |
+| `PIX_CITY` | Não (padrão: `Brasil`) | Cidade que aparece no código PIX |
+
+> **Permissões necessárias para a loja:** o bot precisa de **Manage Channels** na categoria de tickets e **Send Messages** + **Embed Links** nos canais criados.
+
+> **Slash commands:** os comandos `/loja` e `/pedidos-pendentes` são registrados automaticamente ao iniciar o bot. Pode levar alguns minutos para aparecerem no Discord pela primeira vez.
+
 ---
 
 ## 2. Arquivo `config.json` (opcional — texto do menu e dos embeds)
