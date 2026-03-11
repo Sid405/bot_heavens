@@ -1,15 +1,20 @@
 // Discord Bot — comandos de prefixo ... (ex: ...grupo, ...menu, ...duvidas)
+// e Slash Commands (/prompt, /calcular, /aprovar, /entregar, /entregue)
 require("dotenv").config();
 
 const {
   Client,
+  Collection,
   GatewayIntentBits,
   EmbedBuilder,
   ActionRowBuilder,
   StringSelectMenuBuilder,
 } = require("discord.js");
+const path = require("path");
+const fs = require("fs");
 const { loadConfig } = require("./config-loader");
 const { connectDB } = require("./db");
+const { registerCommands } = require("./register-commands");
 
 // ========== CONFIGURAÇÃO (só variáveis de ambiente — nunca coloque token no código) ==========
 const BOT_TOKEN = process.env.DISCORD_BOT_TOKEN;
@@ -33,6 +38,14 @@ const client = new Client({
   ],
 });
 
+// ========== CARREGAR SLASH COMMANDS ==========
+client.commands = new Collection();
+const commandsDir = path.join(__dirname, "commands");
+for (const file of fs.readdirSync(commandsDir).filter((f) => f.endsWith(".js"))) {
+  const cmd = require(path.join(commandsDir, file));
+  client.commands.set(cmd.data.name, cmd);
+}
+
 // ========== BUSCAR CONFIG (API ou local) ==========
 async function getConfigFromAPI() {
   try {
@@ -47,8 +60,13 @@ async function getConfigFromAPI() {
 }
 
 // ========== EVENTOS ==========
-client.once("clientReady", () => {
+client.once("clientReady", async () => {
   console.log(`Bot online: ${client.user.tag} — prefixo: ${PREFIX}comando`);
+  try {
+    await registerCommands();
+  } catch (err) {
+    console.warn("Aviso: Falha ao registrar slash commands. Verifique as variáveis DISCORD_CLIENT_ID e DISCORD_BOT_TOKEN:", err);
+  }
 });
 
 // Listener de comandos de prefixo (ex: ...grupo, ...menu)
@@ -140,8 +158,27 @@ client.on("messageCreate", async (message) => {
   }
 });
 
-// Handler do dropdown (SelectMenu)
+// Handler do dropdown (SelectMenu) e Slash Commands
 client.on("interactionCreate", async (interaction) => {
+  // ===== Slash Commands =====
+  if (interaction.isChatInputCommand()) {
+    const command = client.commands.get(interaction.commandName);
+    if (!command) return;
+    try {
+      await command.execute(interaction, client);
+    } catch (err) {
+      console.error(`[slash/${interaction.commandName}] Erro:`, err);
+      const reply = { content: "❌ Ocorreu um erro ao executar este comando.", ephemeral: true };
+      if (interaction.deferred || interaction.replied) {
+        await interaction.editReply(reply).catch(() => {});
+      } else {
+        await interaction.reply(reply).catch(() => {});
+      }
+    }
+    return;
+  }
+
+  // ===== Select Menu (prefixo) =====
   if (!interaction.isStringSelectMenu()) return;
   if (!interaction.customId.startsWith("panel_select_")) return;
 

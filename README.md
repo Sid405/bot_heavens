@@ -12,9 +12,33 @@ Bot com **select menu** (dropdown) e **embeds** para concentrar tudo em um únic
 
 ## O que o bot faz
 
-- Comando **`/menu`** (ou **`!menu`** / **`?menu`**) que envia uma mensagem com embed e **dropdown**.
+- Comando **`...menu`** (prefixo) que envia uma mensagem com embed e **dropdown**.
 - Ao escolher uma opção no dropdown, o usuário recebe um **embed** (resposta só para ele, ephemeral).
 - O conteúdo do menu e dos embeds vem do **config** (arquivo ou API), então você pode mudar tudo pelo **site Lovable**.
+
+### Slash Commands da Loja (MVP)
+
+| Comando | Descrição |
+|---|---|
+| `/prompt` | Publica o embed da loja com botões de compra no canal atual |
+| `/calcular quantidade tipo` | Calcula o valor de Robux ou Gamepass (resposta privada/ephemeral) |
+| `/aprovar [orderid]` | Marca um pedido como aprovado (placeholder MVP) |
+| `/entregar [orderid]` | Registra a entrega de um pedido (placeholder MVP) |
+| `/entregue [orderid]` | Marca um pedido como entregue (placeholder MVP) |
+
+> Os valores de preço, prazo e textos dos comandos são configuráveis via `/api/config` na seção `store`. Se não houver config, os valores padrão são usados automaticamente.
+
+### Registrar os Slash Commands
+
+Os comandos são registrados automaticamente na inicialização do bot. Para registrar manualmente:
+
+```bash
+# Registrar por guild (instantâneo, recomendado em desenvolvimento)
+DISCORD_GUILD_ID=seu_guild_id node register-commands.js
+
+# Registrar globalmente (sem DISCORD_GUILD_ID, leva até 1 hora)
+node register-commands.js
+```
 
 ## Como configurar
 
@@ -132,13 +156,14 @@ Veja **`config.example.json`** para ver todos os campos (menu, options, embeds).
 
 ## Variáveis de ambiente
 
-| Variável | Descrição |
-|---|---|
-| `DISCORD_BOT_TOKEN` | Token do bot Discord |
-| `DISCORD_CLIENT_ID` | Client ID da aplicação Discord |
-| `MONGODB_URI` | String de conexão do MongoDB Atlas (ex: `mongodb+srv://user:pass@cluster.mongodb.net/dbname`) |
-| `CONFIG_API_KEY` | Chave secreta para autenticar chamadas à API de config |
-| `CONFIG_API_PORT` | Porta local da API (padrão: `3001`) |
+| Variável | Obrigatória | Descrição |
+|---|---|---|
+| `DISCORD_BOT_TOKEN` | ✅ | Token do bot Discord |
+| `DISCORD_CLIENT_ID` | ✅ | Client ID da aplicação Discord |
+| `MONGODB_URI` | ✅ | String de conexão do MongoDB Atlas |
+| `CONFIG_API_KEY` | Recomendada | Chave secreta para autenticar chamadas à API de config |
+| `CONFIG_API_PORT` | Não | Porta local da API (padrão: `3001`) |
+| `DISCORD_GUILD_ID` | Não | ID do servidor Discord. Se definido, registra os slash commands **apenas nessa guild** (instantâneo — ideal para desenvolvimento). Sem esse valor, os comandos são registrados **globalmente** (pode levar até 1 hora). |
 
 > **Importante**: A configuração do bot é agora persistida no **MongoDB Atlas** (via `MONGODB_URI`). Em ambientes com filesystem efêmero (Railway, Render, etc.), as alterações feitas pelo dashboard Lovable serão preservadas entre deploys e reinícios.
 
