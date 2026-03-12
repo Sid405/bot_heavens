@@ -1,4 +1,4 @@
-// Discord Bot — comandos de prefixo ... (ex: ...grupo, ...menu, ...duvidas)
+// Discord Bot — loja (Robux + Gamepass) + painéis de menu (prefixo ...)
 require("dotenv").config();
 
 const {
@@ -7,16 +7,39 @@ const {
   EmbedBuilder,
   ActionRowBuilder,
   StringSelectMenuBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+  ModalBuilder,
+  TextInputBuilder,
+  TextInputStyle,
+  PermissionsBitField,
+  ChannelType,
+  REST,
+  Routes,
+  SlashCommandBuilder,
 } = require("discord.js");
 const { loadConfig } = require("./config-loader");
 const { connectDB } = require("./db");
+const Order = require("./models/Order");
 
-// ========== CONFIGURAÇÃO (só variáveis de ambiente — nunca coloque token no código) ==========
+// ========== CONFIGURAÇÃO ==========
 const BOT_TOKEN = process.env.DISCORD_BOT_TOKEN;
 const CLIENT_ID = process.env.DISCORD_CLIENT_ID;
 const PREFIX = "...";
-const API_URL = process.env.API_URL || process.env.CONFIG_API_URL || "http://localhost:3001";
+const API_URL =
+  process.env.API_URL || process.env.CONFIG_API_URL || "http://localhost:3001";
 const CONFIG_API_KEY = process.env.CONFIG_API_KEY || "";
+
+// Loja
+const SHOP_CATEGORY_ID = process.env.SHOP_CATEGORY_ID || "1395903305623932979";
+const ROBUX_PRICE_BRL = parseFloat(process.env.ROBUX_PRICE_BRL || "0.035");
+const MIN_ROBUX_QUANTITY = 99;
+const PIX_KEY = process.env.PIX_KEY || "";
+const PIX_MERCHANT_NAME = (process.env.PIX_MERCHANT_NAME || "Loja").slice(
+  0,
+  25
+);
+const PIX_CITY = (process.env.PIX_CITY || "Brasil").slice(0, 15);
 
 if (!BOT_TOKEN || !CLIENT_ID) {
   console.error(
@@ -37,7 +60,9 @@ const client = new Client({
 async function getConfigFromAPI() {
   try {
     const res = await fetch(`${API_URL}/api/config`, {
-      headers: CONFIG_API_KEY ? { Authorization: `Bearer ${CONFIG_API_KEY}` } : {},
+      headers: CONFIG_API_KEY
+        ? { Authorization: `Bearer ${CONFIG_API_KEY}` }
+        : {},
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return await res.json();
@@ -46,12 +71,241 @@ async function getConfigFromAPI() {
   }
 }
 
+// ========== ROBLOX API ==========
+async function fetchRobloxUser(username) {
+  try {
+    const res = await fetch("https://users.roblox.com/v1/usernames/users", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        usernames: [username],
+        excludeBannedUsers: false,
+      }),
+      signal: AbortSignal.timeout(7000),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (!data.data || data.data.length === 0) return null;
+    const user = data.data[0];
+
+    const thumbRes = await fetch(
+      `https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${user.id}&size=150x150&format=Png`,
+      { signal: AbortSignal.timeout(5000) }
+    );
+    const thumbData = thumbRes.ok ? await thumbRes.json() : { data: [] };
+    const avatarUrl = thumbData.data?.[0]?.imageUrl || null;
+
+    return {
+      userId: user.id,
+      username: user.name,
+      displayName: user.displayName,
+      avatarUrl,
+    };
+  } catch (err) {
+    console.error("[shop] fetchRobloxUser erro (possível timeout ou API indisponível):", err.name, err.message);
+    return null;
+  }
+}
+
+// ========== HELPERS DA LOJA ==========
+
+function buildNicknameModal(customId = "loja_modal_nickname") {
+  const modal = new ModalBuilder()
+    .setCustomId(customId)
+    .setTitle("Nick do Roblox");
+  modal.addComponents(
+    new ActionRowBuilder().addComponents(
+      new TextInputBuilder()
+        .setCustomId("nickname")
+        .setLabel("Qual é o seu nick no Roblox?")
+        .setStyle(TextInputStyle.Short)
+        .setPlaceholder("Ex: Builderman")
+        .setRequired(true)
+        .setMinLength(3)
+        .setMaxLength(20)
+    )
+  );
+  return modal;
+}
+
+function buildRobloxConfirmEmbed(robloxUser) {
+  return new EmbedBuilder()
+    .setTitle("🔍 Confirmar Conta Roblox")
+    .setDescription("Encontramos este usuário. É você?")
+    .setThumbnail(robloxUser.avatarUrl)
+    .addFields(
+      { name: "📛 Display Name", value: robloxUser.displayName, inline: true },
+      {
+        name: "👤 Username",
+        value: `@${robloxUser.username}`,
+        inline: true,
+      },
+      { name: "🆔 ID", value: String(robloxUser.userId), inline: true }
+    )
+    .setColor(0x5865f2);
+}
+
+function calcTotal(quantity, discountAmount) {
+  const subtotal = quantity * ROBUX_PRICE_BRL;
+  return Math.max(0, subtotal - (discountAmount || 0));
+}
+
+function formatBRL(value) {
+  return `R$ ${value.toFixed(2).replace(".", ",")}`;
+}
+
+function buildOrderEmbed(order) {
+  const total = calcTotal(order.quantity, order.discountAmount);
+  const statusEmoji =
+    {
+      open: "🟢",
+      pending_payment: "🟡",
+      paid: "✅",
+      awaiting_gamepass: "🔵",
+      delivered: "✅",
+      cancelled: "❌",
+    }[order.status] || "⚪";
+  return new EmbedBuilder()
+    .setTitle(`${statusEmoji} Pedido de Robux`)
+    .setColor(0x5865f2)
+    .addFields(
+      { name: "👤 Discord", value: `<@${order.userId}>`, inline: true },
+      {
+        name: "🎮 Roblox",
+        value: `${order.robloxDisplayName} (@${order.robloxUsername})`,
+        inline: true,
+      },
+      {
+        name: "🆔 ID Roblox",
+        value: String(order.robloxUserId),
+        inline: true,
+      },
+      {
+        name: "💎 Quantidade",
+        value:
+          order.quantity > 0 ? `${order.quantity} Robux` : "Não definida",
+        inline: true,
+      },
+      {
+        name: "🏷️ Cupom",
+        value: order.couponCode || "Nenhum",
+        inline: true,
+      },
+      {
+        name: "💰 Total",
+        value:
+          order.quantity > 0 ? formatBRL(total) : "R$ 0,00",
+        inline: true,
+      }
+    )
+    .setFooter({ text: `Pedido #${order._id}` })
+    .setTimestamp();
+}
+
+function buildOrderButtons(orderId) {
+  return new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId(`ticket_qtd_${orderId}`)
+      .setLabel("🔢 Alterar quantidade")
+      .setStyle(ButtonStyle.Primary),
+    new ButtonBuilder()
+      .setCustomId(`ticket_cupom_${orderId}`)
+      .setLabel("🏷️ Adicionar cupom")
+      .setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder()
+      .setCustomId(`ticket_pagar_${orderId}`)
+      .setLabel("💳 Ir para pagamento")
+      .setStyle(ButtonStyle.Success),
+    new ButtonBuilder()
+      .setCustomId(`ticket_editar_${orderId}`)
+      .setLabel("✏️ Editar perfil")
+      .setStyle(ButtonStyle.Secondary)
+  );
+}
+
+// CRC16-CCITT para payload PIX EMV
+function crc16(str) {
+  let crc = 0xffff;
+  for (let i = 0; i < str.length; i++) {
+    crc ^= str.charCodeAt(i) << 8;
+    for (let j = 0; j < 8; j++) {
+      crc = crc & 0x8000 ? (crc << 1) ^ 0x1021 : crc << 1;
+    }
+  }
+  return (crc & 0xffff).toString(16).toUpperCase().padStart(4, "0");
+}
+
+function generatePixPayload(pixKey, merchantName, city, amount) {
+  const merchant = (merchantName || "Loja").slice(0, 25);
+  const cityStr = (city || "Brasil").slice(0, 15);
+  const amountStr = amount.toFixed(2);
+
+  function tlv(tag, value) {
+    return `${tag}${String(value.length).padStart(2, "0")}${value}`;
+  }
+
+  const pixInfo = tlv("00", "BR.GOV.BCB.PIX") + tlv("01", pixKey);
+  const additionalData = tlv("05", "***");
+
+  const body =
+    tlv("00", "01") +
+    tlv("26", pixInfo) +
+    tlv("52", "0000") +
+    tlv("53", "986") +
+    tlv("54", amountStr) +
+    tlv("58", "BR") +
+    tlv("59", merchant) +
+    tlv("60", cityStr) +
+    tlv("62", additionalData) +
+    "6304";
+
+  return body + crc16(body);
+}
+
+async function updateTicketEmbed(guild, orderId) {
+  try {
+    const order = await Order.findById(orderId);
+    if (!order || !order.channelId || !order.ticketMessageId) return;
+    const channel = guild.channels.cache.get(order.channelId);
+    if (!channel) return;
+    const msg = await channel.messages.fetch(order.ticketMessageId);
+    if (!msg) return;
+    const embed = buildOrderEmbed(order);
+    const buttons = buildOrderButtons(order._id);
+    await msg.edit({ embeds: [embed], components: [buttons] });
+  } catch (err) {
+    console.error("[shop] Erro ao atualizar embed do ticket:", err);
+  }
+}
+
+// ========== SLASH COMMANDS ==========
+const slashCommands = [
+  new SlashCommandBuilder()
+    .setName("loja")
+    .setDescription("Abre a loja de Robux e Gamepass"),
+  new SlashCommandBuilder()
+    .setName("pedidos-pendentes")
+    .setDescription("Lista pedidos pendentes (apenas admins)")
+    .setDefaultMemberPermissions(
+      PermissionsBitField.Flags.ManageChannels.toString()
+    ),
+].map((c) => c.toJSON());
+
 // ========== EVENTOS ==========
-client.once("clientReady", () => {
+client.once("clientReady", async () => {
   console.log(`Bot online: ${client.user.tag} — prefixo: ${PREFIX}comando`);
+  try {
+    const rest = new REST({ version: "10" }).setToken(BOT_TOKEN);
+    await rest.put(Routes.applicationCommands(CLIENT_ID), {
+      body: slashCommands,
+    });
+    console.log("Slash commands /loja e /pedidos-pendentes registrados.");
+  } catch (err) {
+    console.error("[slash] Erro ao registrar slash commands:", err);
+  }
 });
 
-// Listener de comandos de prefixo (ex: ...grupo, ...menu)
+// ========== LISTENER DE PREFIXO (ex: ...menu) ==========
 client.on("messageCreate", async (message) => {
   if (message.author.bot) return;
   if (!message.content.startsWith(PREFIX)) return;
@@ -63,7 +317,9 @@ client.on("messageCreate", async (message) => {
 
   const config = await getConfigFromAPI();
   const panels = Array.isArray(config.panels) ? config.panels : [];
-  const panel = panels.find((p) => normalizeCmd(p.command) === normalizeCmd(command));
+  const panel = panels.find(
+    (p) => normalizeCmd(p.command) === normalizeCmd(command)
+  );
 
   if (!panel) {
     const lista = panels
@@ -135,16 +391,14 @@ client.on("messageCreate", async (message) => {
   } catch (err) {
     console.error("Erro ao montar menu:", err);
     await message.channel.send({
-      content: "Erro ao montar o menu. Verifique a configuração no painel.",
+      content:
+        "Erro ao montar o menu. Verifique a configuração no painel.",
     });
   }
 });
 
-// Handler do dropdown (SelectMenu)
-client.on("interactionCreate", async (interaction) => {
-  if (!interaction.isStringSelectMenu()) return;
-  if (!interaction.customId.startsWith("panel_select_")) return;
-
+// ========== HANDLER: painel select menu (existente) ==========
+async function handlePanelSelect(interaction) {
   const panelId = interaction.customId.replace("panel_select_", "");
   const selectedValue = interaction.values[0];
 
@@ -169,9 +423,10 @@ client.on("interactionCreate", async (interaction) => {
     });
   }
 
-  const color = parseInt(String(embedData.color || "5865f2").replace(/^#/, ""), 16) || 0x2b2d31;
+  const color =
+    parseInt(String(embedData.color || "5865f2").replace(/^#/, ""), 16) ||
+    0x2b2d31;
 
-  // Build description, optionally appending video
   let description = embedData.description || "";
   if (embedData.video) {
     const videoLine = `\n\n🎥 ${embedData.video}`;
@@ -190,10 +445,8 @@ client.on("interactionCreate", async (interaction) => {
     .setDescription(description)
     .setColor(color);
 
-  // URL do título
   if (embedData.url) embed.setURL(embedData.url);
 
-  // Author
   if (embedData.author?.name && embedData.author.name.trim().length > 0) {
     const authorData = { name: embedData.author.name.trim() };
     if (embedData.author.url) authorData.url = embedData.author.url;
@@ -201,11 +454,9 @@ client.on("interactionCreate", async (interaction) => {
     embed.setAuthor(authorData);
   }
 
-  // Image / Thumbnail
   if (embedData.image) embed.setImage(embedData.image);
   if (embedData.thumbnail) embed.setThumbnail(embedData.thumbnail);
 
-  // Fields
   if (Array.isArray(embedData.fields)) {
     const validFields = embedData.fields
       .filter(
@@ -225,7 +476,6 @@ client.on("interactionCreate", async (interaction) => {
     if (validFields.length > 0) embed.addFields(validFields);
   }
 
-  // Footer and Timestamp
   if (embedData.footer?.text && embedData.footer.text.trim().length > 0) {
     const footerData = { text: embedData.footer.text.trim() };
     if (embedData.footer.iconUrl) footerData.iconURL = embedData.footer.iconUrl;
@@ -241,15 +491,653 @@ client.on("interactionCreate", async (interaction) => {
         if (!isNaN(ts.getTime())) {
           embed.setTimestamp(ts);
         } else {
-          console.warn(`[embed] Timestamp inválido ignorado: "${embedData.footer.timestamp}"`);
+          console.warn(
+            `[embed] Timestamp inválido ignorado: "${embedData.footer.timestamp}"`
+          );
         }
       }
     }
   } else {
-    embed.setFooter({ text: `Solicitado por ${interaction.user.tag}` }).setTimestamp();
+    embed
+      .setFooter({ text: `Solicitado por ${interaction.user.tag}` })
+      .setTimestamp();
   }
 
   await interaction.reply({ embeds: [embed], ephemeral: true });
+}
+
+// ========== HANDLERS DA LOJA ==========
+
+// /loja — exibe termos e botões
+async function handleLojaCommand(interaction) {
+  const embed = new EmbedBuilder()
+    .setTitle("🛍️ Bem-vindo à Loja!")
+    .setDescription(
+      "Aqui você pode comprar **Robux** e **Gamepass** com segurança.\n\n" +
+        "**Termos de uso resumidos:**\n" +
+        "• Os pedidos são processados manualmente e podem levar algumas horas.\n" +
+        "• Não realizamos reembolsos após confirmação do pagamento.\n" +
+        "• Você precisa fornecer o nick correto do Roblox.\n" +
+        "• Ao iniciar a compra, você concorda com os termos acima.\n\n" +
+        "Clique em **Iniciar Compra** para começar! 🚀"
+    )
+    .setColor(0x57f287)
+    .setFooter({ text: "Loja Oficial" })
+    .setTimestamp();
+
+  const row = new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId("loja_iniciar")
+      .setLabel("🛒 Iniciar Compra")
+      .setStyle(ButtonStyle.Success),
+    new ButtonBuilder()
+      .setCustomId("loja_termos")
+      .setLabel("📜 Ler Termos")
+      .setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder()
+      .setCustomId("loja_cancelar")
+      .setLabel("✖ Cancelar")
+      .setStyle(ButtonStyle.Danger)
+  );
+
+  await interaction.reply({ embeds: [embed], components: [row] });
+}
+
+// /pedidos-pendentes — lista pedidos pendentes (admin)
+async function handlePedidosPendentesCommand(interaction) {
+  await interaction.deferReply({ ephemeral: true });
+
+  const orders = await Order.find({
+    guildId: interaction.guildId,
+    status: {
+      $in: ["open", "pending_payment", "paid", "awaiting_gamepass"],
+    },
+  })
+    .sort({ createdAt: -1 })
+    .limit(20);
+
+  if (orders.length === 0) {
+    return interaction.editReply({
+      content: "✅ Nenhum pedido pendente no momento.",
+    });
+  }
+
+  const statusEmojis = {
+    open: "🟢",
+    pending_payment: "🟡",
+    paid: "✅",
+    awaiting_gamepass: "🔵",
+  };
+
+  const lines = orders.map((o) => {
+    const emoji = statusEmojis[o.status] || "⚪";
+    const qty = o.quantity > 0 ? `${o.quantity} Robux` : "—";
+    const gamepass = o.gamepassLink ? `[Gamepass](${o.gamepassLink})` : "—";
+    const ch = o.channelId ? `<#${o.channelId}>` : "sem ticket";
+    return `${emoji} <@${o.userId}> | ${qty} | ${gamepass} | ${ch}`;
+  });
+
+  const embed = new EmbedBuilder()
+    .setTitle("📋 Pedidos Pendentes")
+    .setDescription(lines.join("\n"))
+    .setColor(0xfee75c)
+    .setFooter({ text: `${orders.length} pedido(s)` })
+    .setTimestamp();
+
+  await interaction.editReply({ embeds: [embed] });
+}
+
+// Botão: Iniciar Compra → abre modal de nick
+async function handleLojaIniciar(interaction) {
+  await interaction.showModal(buildNicknameModal());
+}
+
+// Botão: Ler Termos → ephemeral
+async function handleLojaTermos(interaction) {
+  await interaction.reply({
+    content:
+      "📜 **Termos de Uso Completos**\n\n" +
+      "1. Os pedidos são processados em ordem de chegada.\n" +
+      "2. Pagamento via PIX (instruções enviadas após configuração).\n" +
+      "3. Não realizamos reembolsos após confirmação do pagamento.\n" +
+      "4. Você é responsável por fornecer o nick correto do Roblox.\n" +
+      "5. O prazo de entrega é de até 24 horas após confirmação do pagamento.\n" +
+      "6. Em caso de problemas, entre em contato com a equipe.",
+    ephemeral: true,
+  });
+}
+
+// Botão: Cancelar → remove embed
+async function handleLojaCancelar(interaction) {
+  await interaction.update({
+    content: "✖ Compra cancelada.",
+    embeds: [],
+    components: [],
+  });
+}
+
+// Botão: Sim, sou eu → cria ticket
+async function handleLojaSim(interaction, orderId) {
+  await interaction.deferUpdate();
+
+  const order = await Order.findById(orderId);
+  if (!order || order.userId !== interaction.user.id) {
+    return interaction.editReply({
+      content: "❌ Pedido não encontrado.",
+      embeds: [],
+      components: [],
+    });
+  }
+
+  // Verificar se já existe ticket para este pedido
+  if (order.channelId) {
+    return interaction.editReply({
+      content: `✅ Ticket já existe: <#${order.channelId}>`,
+      embeds: [],
+      components: [],
+    });
+  }
+
+  try {
+    const me = interaction.guild.members.me;
+    const adminRoles = interaction.guild.roles.cache.filter(
+      (r) =>
+        !r.managed &&
+        r.id !== interaction.guild.id &&
+        (r.permissions.has(PermissionsBitField.Flags.ManageChannels) ||
+          r.permissions.has(PermissionsBitField.Flags.Administrator))
+    );
+
+    const permissionOverwrites = [
+      {
+        id: interaction.guild.id,
+        deny: [PermissionsBitField.Flags.ViewChannel],
+      },
+      {
+        id: interaction.user.id,
+        allow: [
+          PermissionsBitField.Flags.ViewChannel,
+          PermissionsBitField.Flags.SendMessages,
+          PermissionsBitField.Flags.ReadMessageHistory,
+        ],
+      },
+    ];
+
+    if (me) {
+      permissionOverwrites.push({
+        id: me.id,
+        allow: [
+          PermissionsBitField.Flags.ViewChannel,
+          PermissionsBitField.Flags.SendMessages,
+          PermissionsBitField.Flags.ManageChannels,
+          PermissionsBitField.Flags.ReadMessageHistory,
+        ],
+      });
+    }
+
+    for (const [, role] of adminRoles) {
+      permissionOverwrites.push({
+        id: role.id,
+        allow: [
+          PermissionsBitField.Flags.ViewChannel,
+          PermissionsBitField.Flags.SendMessages,
+          PermissionsBitField.Flags.ReadMessageHistory,
+        ],
+      });
+    }
+
+    const safeName = (order.robloxUsername || "usuario")
+      .toLowerCase()
+      .replace(/[^a-z0-9_]/g, "")
+      .slice(0, 20);
+
+    // Verificar se a categoria existe e está acessível
+    const category = interaction.guild.channels.cache.get(SHOP_CATEGORY_ID);
+    if (!category) {
+      console.error(`[shop] Categoria de tickets não encontrada: ${SHOP_CATEGORY_ID}`);
+      return interaction.editReply({
+        content:
+          "❌ Categoria de tickets não encontrada. Contate um admin para configurar `SHOP_CATEGORY_ID`.",
+        embeds: [],
+        components: [],
+      });
+    }
+
+    const channel = await interaction.guild.channels.create({
+      name: `🟢・ticket-${safeName}`,
+      type: ChannelType.GuildText,
+      parent: SHOP_CATEGORY_ID,
+      permissionOverwrites,
+    });
+
+    const orderEmbed = buildOrderEmbed(order);
+    const buttons = buildOrderButtons(order._id);
+
+    const msg = await channel.send({
+      content: `<@${order.userId}>`,
+      embeds: [orderEmbed],
+      components: [buttons],
+    });
+
+    await Order.findByIdAndUpdate(orderId, {
+      channelId: channel.id,
+      ticketMessageId: msg.id,
+    });
+
+    await interaction.editReply({
+      content: `✅ Ticket criado! Vá para <#${channel.id}>`,
+      embeds: [],
+      components: [],
+    });
+  } catch (err) {
+    console.error("[shop] Erro ao criar ticket:", err);
+    await interaction.editReply({
+      content: "❌ Erro ao criar ticket. Tente novamente ou contate um admin.",
+      embeds: [],
+      components: [],
+    });
+  }
+}
+
+// Botão: Não sou eu → reabre modal (reutiliza orderId para atualizar)
+async function handleLojaNao(interaction, orderId) {
+  await interaction.showModal(
+    buildNicknameModal(`loja_modal_reconfirmar_${orderId}`)
+  );
+}
+
+// Botão: Alterar quantidade → abre modal
+async function handleTicketQtd(interaction, orderId) {
+  const modal = new ModalBuilder()
+    .setCustomId(`ticket_modal_qtd_${orderId}`)
+    .setTitle("Alterar Quantidade de Robux");
+  modal.addComponents(
+    new ActionRowBuilder().addComponents(
+      new TextInputBuilder()
+        .setCustomId("quantidade")
+        .setLabel(`Quantidade de Robux (mínimo ${MIN_ROBUX_QUANTITY})`)
+        .setStyle(TextInputStyle.Short)
+        .setPlaceholder("Ex: 400")
+        .setRequired(true)
+        .setMinLength(2)
+        .setMaxLength(10)
+    )
+  );
+  await interaction.showModal(modal);
+}
+
+// Botão: Adicionar cupom → abre modal
+async function handleTicketCupom(interaction, orderId) {
+  const modal = new ModalBuilder()
+    .setCustomId(`ticket_modal_cupom_${orderId}`)
+    .setTitle("Adicionar Cupom de Desconto");
+  modal.addComponents(
+    new ActionRowBuilder().addComponents(
+      new TextInputBuilder()
+        .setCustomId("cupom")
+        .setLabel("Código do cupom")
+        .setStyle(TextInputStyle.Short)
+        .setPlaceholder("Ex: PROMO10")
+        .setRequired(true)
+        .setMinLength(1)
+        .setMaxLength(30)
+    )
+  );
+  await interaction.showModal(modal);
+}
+
+// Botão: Ir para pagamento → gera PIX placeholder e muda status
+async function handleTicketPagar(interaction, orderId) {
+  await interaction.deferUpdate();
+
+  const order = await Order.findById(orderId);
+  if (!order) {
+    await interaction.followUp({
+      content: "❌ Pedido não encontrado.",
+      ephemeral: true,
+    });
+    return;
+  }
+
+  if (order.quantity < MIN_ROBUX_QUANTITY) {
+    await interaction.followUp({
+      content: `❌ Defina a quantidade de Robux (mínimo ${MIN_ROBUX_QUANTITY}) antes de ir para o pagamento.`,
+      ephemeral: true,
+    });
+    return;
+  }
+
+  const total = calcTotal(order.quantity, order.discountAmount);
+  const totalFormatted = formatBRL(total);
+
+  let pixContent = "";
+  if (PIX_KEY) {
+    const payload = generatePixPayload(
+      PIX_KEY,
+      PIX_MERCHANT_NAME,
+      PIX_CITY,
+      total
+    );
+    pixContent = `\n\n**📋 Copia e Cola PIX:**\n\`\`\`\n${payload}\n\`\`\``;
+  } else {
+    pixContent =
+      "\n\n*⚠️ Chave PIX não configurada. Entre em contato com um admin para receber os dados de pagamento.*";
+  }
+
+  const payEmbed = new EmbedBuilder()
+    .setTitle("💳 Instruções de Pagamento")
+    .setDescription(
+      `**Valor a pagar: ${totalFormatted}**\n` +
+        `Quantidade: ${order.quantity} Robux\n` +
+        (order.couponCode ? `Cupom: ${order.couponCode}\n` : "") +
+        pixContent +
+        "\n\nApós realizar o pagamento, **aguarde a confirmação de um admin**."
+    )
+    .setColor(0xfee75c)
+    .setTimestamp();
+
+  const updatedOrder = await Order.findByIdAndUpdate(
+    orderId,
+    { status: "pending_payment", totalAmount: total },
+    { new: true }
+  );
+
+  // Renomear canal para status pendente
+  try {
+    if (interaction.channel) {
+      const safeName = (order.robloxUsername || "usuario")
+        .toLowerCase()
+        .replace(/[^a-z0-9_]/g, "")
+        .slice(0, 20);
+      await interaction.channel.setName(`🟡・ticket-${safeName}`);
+    }
+  } catch {
+    // Sem permissão para renomear — ignora
+  }
+
+  // Atualizar embed do ticket com novo status
+  await updateTicketEmbed(interaction.guild, updatedOrder._id);
+
+  // Enviar instruções de pagamento no canal
+  await interaction.channel.send({ embeds: [payEmbed] });
+}
+
+// Botão: Editar perfil → reabre modal de nick
+async function handleTicketEditar(interaction, orderId) {
+  await interaction.showModal(
+    buildNicknameModal(`loja_modal_reeditar_${orderId}`)
+  );
+}
+
+// Modal: primeiro nickname (/loja → Iniciar Compra → modal)
+async function handleModalNickname(interaction) {
+  await interaction.deferReply({ ephemeral: true });
+
+  const nickname = interaction.fields.getTextInputValue("nickname");
+  const robloxUser = await fetchRobloxUser(nickname);
+
+  if (!robloxUser) {
+    return interaction.editReply({
+      content:
+        "❌ Usuário Roblox não encontrado. Verifique o nick e tente novamente.",
+    });
+  }
+
+  // Remove pedidos abertos anteriores deste usuário (sem canal criado) para evitar acúmulo
+  await Order.deleteMany({
+    guildId: interaction.guildId,
+    userId: interaction.user.id,
+    channelId: null,
+  });
+
+  const order = await Order.create({
+    guildId: interaction.guildId,
+    userId: interaction.user.id,
+    robloxUserId: String(robloxUser.userId),
+    robloxUsername: robloxUser.username,
+    robloxDisplayName: robloxUser.displayName,
+    status: "open",
+  });
+
+  const embed = buildRobloxConfirmEmbed(robloxUser);
+  const row = new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId(`loja_nao_${order._id}`)
+      .setLabel("❌ Não sou eu")
+      .setStyle(ButtonStyle.Danger),
+    new ButtonBuilder()
+      .setCustomId(`loja_sim_${order._id}`)
+      .setLabel("✅ Sim, sou eu")
+      .setStyle(ButtonStyle.Success)
+  );
+
+  await interaction.editReply({ embeds: [embed], components: [row] });
+}
+
+// Modal: reconfirmação de nick (clicou "Não sou eu")
+async function handleModalReconfirmar(interaction, orderId) {
+  await interaction.deferReply({ ephemeral: true });
+
+  const nickname = interaction.fields.getTextInputValue("nickname");
+  const robloxUser = await fetchRobloxUser(nickname);
+
+  if (!robloxUser) {
+    return interaction.editReply({
+      content:
+        "❌ Usuário Roblox não encontrado. Verifique o nick e tente novamente.",
+    });
+  }
+
+  const order = await Order.findByIdAndUpdate(
+    orderId,
+    {
+      robloxUserId: String(robloxUser.userId),
+      robloxUsername: robloxUser.username,
+      robloxDisplayName: robloxUser.displayName,
+    },
+    { new: true }
+  );
+
+  if (!order) {
+    return interaction.editReply({ content: "❌ Pedido não encontrado." });
+  }
+
+  const embed = buildRobloxConfirmEmbed(robloxUser);
+  const row = new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId(`loja_nao_${order._id}`)
+      .setLabel("❌ Não sou eu")
+      .setStyle(ButtonStyle.Danger),
+    new ButtonBuilder()
+      .setCustomId(`loja_sim_${order._id}`)
+      .setLabel("✅ Sim, sou eu")
+      .setStyle(ButtonStyle.Success)
+  );
+
+  await interaction.editReply({ embeds: [embed], components: [row] });
+}
+
+// Modal: reeditar perfil dentro do ticket
+async function handleModalReeditar(interaction, orderId) {
+  await interaction.deferReply({ ephemeral: true });
+
+  const nickname = interaction.fields.getTextInputValue("nickname");
+  const robloxUser = await fetchRobloxUser(nickname);
+
+  if (!robloxUser) {
+    return interaction.editReply({
+      content: "❌ Usuário Roblox não encontrado. Tente novamente.",
+    });
+  }
+
+  const order = await Order.findByIdAndUpdate(
+    orderId,
+    {
+      robloxUserId: String(robloxUser.userId),
+      robloxUsername: robloxUser.username,
+      robloxDisplayName: robloxUser.displayName,
+    },
+    { new: true }
+  );
+
+  if (!order) {
+    return interaction.editReply({ content: "❌ Pedido não encontrado." });
+  }
+
+  await updateTicketEmbed(interaction.guild, orderId);
+  await interaction.editReply({ content: "✅ Perfil atualizado com sucesso!" });
+}
+
+// Modal: alterar quantidade
+async function handleModalQtd(interaction, orderId) {
+  await interaction.deferReply({ ephemeral: true });
+
+  const raw = interaction.fields.getTextInputValue("quantidade");
+  const qty = parseInt(raw, 10);
+
+  if (isNaN(qty) || qty < MIN_ROBUX_QUANTITY) {
+    return interaction.editReply({
+      content: `❌ Quantidade inválida. O mínimo é **${MIN_ROBUX_QUANTITY} Robux**.`,
+    });
+  }
+
+  const total = calcTotal(qty, 0);
+  const order = await Order.findByIdAndUpdate(
+    orderId,
+    {
+      quantity: qty,
+      totalAmount: total,
+      discountAmount: 0,
+      couponCode: null,
+    },
+    { new: true }
+  );
+
+  if (!order) {
+    return interaction.editReply({ content: "❌ Pedido não encontrado." });
+  }
+
+  await updateTicketEmbed(interaction.guild, orderId);
+  await interaction.editReply({
+    content: `✅ Quantidade atualizada: **${qty} Robux** (${formatBRL(total)})`,
+  });
+}
+
+// Modal: aplicar cupom
+async function handleModalCupom(interaction, orderId) {
+  await interaction.deferReply({ ephemeral: true });
+
+  const cupom = interaction.fields
+    .getTextInputValue("cupom")
+    .trim()
+    .toUpperCase();
+
+  const order = await Order.findByIdAndUpdate(
+    orderId,
+    { couponCode: cupom },
+    { new: true }
+  );
+
+  if (!order) {
+    return interaction.editReply({ content: "❌ Pedido não encontrado." });
+  }
+
+  await updateTicketEmbed(interaction.guild, orderId);
+  await interaction.editReply({
+    content: `✅ Cupom **${cupom}** registrado! *(Desconto será validado por um admin.)*`,
+  });
+}
+
+// ========== INTERAÇÃO CENTRAL ==========
+client.on("interactionCreate", async (interaction) => {
+  try {
+    // Slash commands
+    if (interaction.isChatInputCommand()) {
+      if (interaction.commandName === "loja") {
+        await handleLojaCommand(interaction);
+      } else if (interaction.commandName === "pedidos-pendentes") {
+        await handlePedidosPendentesCommand(interaction);
+      }
+      return;
+    }
+
+    // Botões
+    if (interaction.isButton()) {
+      const id = interaction.customId;
+      if (id === "loja_iniciar") {
+        await handleLojaIniciar(interaction);
+      } else if (id === "loja_termos") {
+        await handleLojaTermos(interaction);
+      } else if (id === "loja_cancelar") {
+        await handleLojaCancelar(interaction);
+      } else if (id.startsWith("loja_sim_")) {
+        await handleLojaSim(interaction, id.slice("loja_sim_".length));
+      } else if (id.startsWith("loja_nao_")) {
+        await handleLojaNao(interaction, id.slice("loja_nao_".length));
+      } else if (id.startsWith("ticket_qtd_")) {
+        await handleTicketQtd(interaction, id.slice("ticket_qtd_".length));
+      } else if (id.startsWith("ticket_cupom_")) {
+        await handleTicketCupom(interaction, id.slice("ticket_cupom_".length));
+      } else if (id.startsWith("ticket_pagar_")) {
+        await handleTicketPagar(interaction, id.slice("ticket_pagar_".length));
+      } else if (id.startsWith("ticket_editar_")) {
+        await handleTicketEditar(
+          interaction,
+          id.slice("ticket_editar_".length)
+        );
+      }
+      return;
+    }
+
+    // Modais
+    if (interaction.isModalSubmit()) {
+      const id = interaction.customId;
+      if (id === "loja_modal_nickname") {
+        await handleModalNickname(interaction);
+      } else if (id.startsWith("loja_modal_reconfirmar_")) {
+        await handleModalReconfirmar(
+          interaction,
+          id.slice("loja_modal_reconfirmar_".length)
+        );
+      } else if (id.startsWith("loja_modal_reeditar_")) {
+        await handleModalReeditar(
+          interaction,
+          id.slice("loja_modal_reeditar_".length)
+        );
+      } else if (id.startsWith("ticket_modal_qtd_")) {
+        await handleModalQtd(
+          interaction,
+          id.slice("ticket_modal_qtd_".length)
+        );
+      } else if (id.startsWith("ticket_modal_cupom_")) {
+        await handleModalCupom(
+          interaction,
+          id.slice("ticket_modal_cupom_".length)
+        );
+      }
+      return;
+    }
+
+    // Select menu de painéis (existente)
+    if (
+      interaction.isStringSelectMenu() &&
+      interaction.customId.startsWith("panel_select_")
+    ) {
+      await handlePanelSelect(interaction);
+    }
+  } catch (err) {
+    console.error("[interactionCreate] Erro:", err);
+    try {
+      const errMsg = { content: "❌ Ocorreu um erro inesperado.", ephemeral: true };
+      if (interaction.deferred || interaction.replied) {
+        await interaction.followUp(errMsg);
+      } else if (!interaction.isModalSubmit()) {
+        await interaction.reply(errMsg);
+      }
+    } catch {
+      // Ignora falhas no envio do erro
+    }
+  }
 });
 
 // ========== SERVIDOR HTTP (porta do Railway = process.env.PORT) ==========
