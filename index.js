@@ -109,6 +109,23 @@ async function fetchRobloxUser(username) {
 
 // ========== HELPERS DA LOJA ==========
 
+// Retorna o label legível para o tipo de produto
+function getProductLabel(productType) {
+  return productType === "gamepass" ? "Gamepass" : "Robux";
+}
+
+// Rejeita interação com aviso efêmero se o usuário não é o dono
+async function rejectIfNotOwner(interaction, ownerId) {
+  if (interaction.user.id !== ownerId) {
+    await interaction.reply({
+      content: "❌ Este botão não é para você.",
+      ephemeral: true,
+    });
+    return true;
+  }
+  return false;
+}
+
 function buildNicknameModal(customId = "loja_modal_nickname") {
   const modal = new ModalBuilder()
     .setCustomId(customId)
@@ -165,8 +182,9 @@ function buildOrderEmbed(order) {
       delivered: "✅",
       cancelled: "❌",
     }[order.status] || "⚪";
+  const productLabel = getProductLabel(order.productType);
   return new EmbedBuilder()
-    .setTitle(`${statusEmoji} Pedido de Robux`)
+    .setTitle(`${statusEmoji} Pedido de ${productLabel}`)
     .setColor(0x5865f2)
     .addFields(
       { name: "👤 Discord", value: `<@${order.userId}>`, inline: true },
@@ -508,39 +526,78 @@ async function handlePanelSelect(interaction) {
 
 // ========== HANDLERS DA LOJA ==========
 
-// /loja — exibe termos e botões
+// /loja — exibe tela inicial "Heaven's Market" com 2 botões
 async function handleLojaCommand(interaction) {
+  const userId = interaction.user.id;
+
   const embed = new EmbedBuilder()
-    .setTitle("🛍️ Bem-vindo à Loja!")
+    .setTitle("🛒 Heaven's Market")
     .setDescription(
-      "Aqui você pode comprar **Robux** e **Gamepass** com segurança.\n\n" +
-        "**Termos de uso resumidos:**\n" +
-        "• Os pedidos são processados manualmente e podem levar algumas horas.\n" +
-        "• Não realizamos reembolsos após confirmação do pagamento.\n" +
-        "• Você precisa fornecer o nick correto do Roblox.\n" +
-        "• Ao iniciar a compra, você concorda com os termos acima.\n\n" +
-        "Clique em **Iniciar Compra** para começar! 🚀"
+      "Bem-vindo à nossa loja! Escolha o produto que deseja comprar abaixo."
     )
-    .setColor(0x57f287)
-    .setFooter({ text: "Loja Oficial" })
+    .addFields(
+      {
+        name: "🕐 Horários de Entrega",
+        value: "Segunda a Sábado — 08h às 22h (BRT)",
+        inline: false,
+      },
+      {
+        name: "💬 Suporte",
+        value: "Abra um ticket e nossa equipe irá te ajudar!",
+        inline: false,
+      }
+    )
+    .setColor(0x5865f2)
+    .setFooter({ text: "Heaven's Market" })
     .setTimestamp();
 
   const row = new ActionRowBuilder().addComponents(
     new ButtonBuilder()
-      .setCustomId("loja_iniciar")
+      .setCustomId(`loja_produto_robux_${userId}`)
+      .setLabel("💎 Comprar Robux!")
+      .setStyle(ButtonStyle.Primary),
+    new ButtonBuilder()
+      .setCustomId(`loja_produto_gamepass_${userId}`)
+      .setLabel("🎮 Comprar Gamepass!")
+      .setStyle(ButtonStyle.Success)
+  );
+
+  await interaction.reply({ embeds: [embed], components: [row] });
+}
+
+// Botão: Comprar Robux / Comprar Gamepass → exibe termos + Iniciar Compra / Cancelar
+async function handleLojaProduto(interaction, productType, ownerId) {
+  if (await rejectIfNotOwner(interaction, ownerId)) return;
+
+  const productLabel = getProductLabel(productType);
+
+  const embed = new EmbedBuilder()
+    .setTitle("📜 Termos de Uso — Heaven's Market")
+    .setDescription(
+      `Você selecionou: **${productLabel}**\n\n` +
+        "Antes de continuar, leia os nossos termos:\n\n" +
+        "• Os pedidos são processados manualmente e podem levar algumas horas.\n" +
+        "• Não realizamos reembolsos após confirmação do pagamento.\n" +
+        "• Você precisa fornecer o nick correto do Roblox.\n" +
+        "• Ao iniciar a compra, você concorda com os termos acima.\n\n" +
+        "Clique em **Iniciar Compra** para continuar! 🚀"
+    )
+    .setColor(0x57f287)
+    .setFooter({ text: "Heaven's Market" })
+    .setTimestamp();
+
+  const row = new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId(`loja_iniciar_${productType}_${ownerId}`)
       .setLabel("🛒 Iniciar Compra")
       .setStyle(ButtonStyle.Success),
     new ButtonBuilder()
-      .setCustomId("loja_termos")
-      .setLabel("📜 Ler Termos")
-      .setStyle(ButtonStyle.Secondary),
-    new ButtonBuilder()
-      .setCustomId("loja_cancelar")
+      .setCustomId(`loja_cancelar_${ownerId}`)
       .setLabel("✖ Cancelar")
       .setStyle(ButtonStyle.Danger)
   );
 
-  await interaction.reply({ embeds: [embed], components: [row] });
+  await interaction.update({ embeds: [embed], components: [row] });
 }
 
 // /pedidos-pendentes — lista pedidos pendentes (admin)
@@ -587,28 +644,17 @@ async function handlePedidosPendentesCommand(interaction) {
   await interaction.editReply({ embeds: [embed] });
 }
 
-// Botão: Iniciar Compra → abre modal de nick
-async function handleLojaIniciar(interaction) {
-  await interaction.showModal(buildNicknameModal());
+// Botão: Iniciar Compra → abre modal de nick (com productType e verificação de dono)
+async function handleLojaIniciarProduto(interaction, productType, ownerId) {
+  if (await rejectIfNotOwner(interaction, ownerId)) return;
+  await interaction.showModal(
+    buildNicknameModal(`loja_modal_nickname_${productType}`)
+  );
 }
 
-// Botão: Ler Termos → ephemeral
-async function handleLojaTermos(interaction) {
-  await interaction.reply({
-    content:
-      "📜 **Termos de Uso Completos**\n\n" +
-      "1. Os pedidos são processados em ordem de chegada.\n" +
-      "2. Pagamento via PIX (instruções enviadas após configuração).\n" +
-      "3. Não realizamos reembolsos após confirmação do pagamento.\n" +
-      "4. Você é responsável por fornecer o nick correto do Roblox.\n" +
-      "5. O prazo de entrega é de até 24 horas após confirmação do pagamento.\n" +
-      "6. Em caso de problemas, entre em contato com a equipe.",
-    ephemeral: true,
-  });
-}
-
-// Botão: Cancelar → remove embed
-async function handleLojaCancelar(interaction) {
+// Botão: Cancelar → remove embed (com verificação de dono)
+async function handleLojaCancelar(interaction, ownerId) {
+  if (ownerId && await rejectIfNotOwner(interaction, ownerId)) return;
   await interaction.update({
     content: "✖ Compra cancelada.",
     embeds: [],
@@ -870,7 +916,7 @@ async function handleTicketEditar(interaction, orderId) {
 }
 
 // Modal: primeiro nickname (/loja → Iniciar Compra → modal)
-async function handleModalNickname(interaction) {
+async function handleModalNickname(interaction, productType = "robux") {
   await interaction.deferReply({ ephemeral: true });
 
   const nickname = interaction.fields.getTextInputValue("nickname");
@@ -896,6 +942,7 @@ async function handleModalNickname(interaction) {
     robloxUserId: String(robloxUser.userId),
     robloxUsername: robloxUser.username,
     robloxDisplayName: robloxUser.displayName,
+    productType: productType === "gamepass" ? "gamepass" : "robux",
     status: "open",
   });
 
@@ -1064,12 +1111,24 @@ client.on("interactionCreate", async (interaction) => {
     // Botões
     if (interaction.isButton()) {
       const id = interaction.customId;
-      if (id === "loja_iniciar") {
-        await handleLojaIniciar(interaction);
-      } else if (id === "loja_termos") {
-        await handleLojaTermos(interaction);
+      if (id.startsWith("loja_produto_robux_")) {
+        const ownerId = id.slice("loja_produto_robux_".length);
+        await handleLojaProduto(interaction, "robux", ownerId);
+      } else if (id.startsWith("loja_produto_gamepass_")) {
+        const ownerId = id.slice("loja_produto_gamepass_".length);
+        await handleLojaProduto(interaction, "gamepass", ownerId);
+      } else if (id.startsWith("loja_iniciar_robux_")) {
+        const ownerId = id.slice("loja_iniciar_robux_".length);
+        await handleLojaIniciarProduto(interaction, "robux", ownerId);
+      } else if (id.startsWith("loja_iniciar_gamepass_")) {
+        const ownerId = id.slice("loja_iniciar_gamepass_".length);
+        await handleLojaIniciarProduto(interaction, "gamepass", ownerId);
+      } else if (id.startsWith("loja_cancelar_")) {
+        const ownerId = id.slice("loja_cancelar_".length);
+        await handleLojaCancelar(interaction, ownerId);
       } else if (id === "loja_cancelar") {
-        await handleLojaCancelar(interaction);
+        // backward compat: old messages without ownerId suffix
+        await handleLojaCancelar(interaction, null);
       } else if (id.startsWith("loja_sim_")) {
         await handleLojaSim(interaction, id.slice("loja_sim_".length));
       } else if (id.startsWith("loja_nao_")) {
@@ -1092,8 +1151,13 @@ client.on("interactionCreate", async (interaction) => {
     // Modais
     if (interaction.isModalSubmit()) {
       const id = interaction.customId;
-      if (id === "loja_modal_nickname") {
-        await handleModalNickname(interaction);
+      if (id === "loja_modal_nickname_robux") {
+        await handleModalNickname(interaction, "robux");
+      } else if (id === "loja_modal_nickname_gamepass") {
+        await handleModalNickname(interaction, "gamepass");
+      } else if (id === "loja_modal_nickname") {
+        // backward compat: old messages that used the generic modal id
+        await handleModalNickname(interaction, "robux");
       } else if (id.startsWith("loja_modal_reconfirmar_")) {
         await handleModalReconfirmar(
           interaction,
