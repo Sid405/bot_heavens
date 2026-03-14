@@ -70,6 +70,21 @@ Se você **não** colocar `CONFIG_API_KEY`, o bot roda normal, mas a API do pain
 
 ### Opcional: loja de Robux e Gamepass (`/loja`)
 
+#### Fluxo de dois passos do `/loja`
+
+O comando `/loja` agora usa um fluxo de dois passos:
+
+1. **Tela inicial** — exibe o embed "Heaven's Market" com **2 botões**:
+   - **💎 Comprar Robux!**
+   - **🎮 Comprar Gamepass!**
+2. **Tela de termos** — ao clicar em qualquer botão de produto, o embed é substituído pelos termos de uso e 2 novos botões:
+   - **🛒 Iniciar Compra** — abre o modal para informar o nick do Roblox e segue o fluxo de criação de ticket.
+   - **✖ Cancelar** — cancela a compra e remove o embed.
+
+O produto escolhido (Robux ou Gamepass) é salvo no pedido para que a equipe saiba o que entregar.
+
+> **Obs.:** Somente o usuário que executou `/loja` pode interagir com os botões gerados. Outros membros verão um aviso efêmero ao tentar clicar.
+
 Para usar os comandos `/loja` e `/pedidos-pendentes`, adicione ao `.env`:
 
 ```env
