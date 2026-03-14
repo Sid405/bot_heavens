@@ -585,7 +585,28 @@ async function handleLojaProduto(interaction, productType) {
     return;
   }
 
-  // Remove pedidos abertos anteriores deste usuário (sem nick ainda) para evitar acúmulo
+  // Se o usuário já tem um ticket aberto, avisa ephemeralmente em vez de criar um novo
+  const existingOrder = await Order.findOne({
+    guildId: interaction.guildId,
+    userId,
+    channelId: { $ne: null },
+    status: { $in: ["open", "pending_payment", "awaiting_gamepass"] },
+  });
+  if (existingOrder) {
+    const existingChannel = interaction.guild.channels.cache.get(existingOrder.channelId);
+    if (existingChannel) {
+      await interaction.followUp({
+        content: `⚠️ Você já tem um ticket aberto! Vá para <#${existingOrder.channelId}>.`,
+        ephemeral: true,
+      });
+      return;
+    }
+    // Canal não encontrado — limpa o pedido órfão e continua
+    await Order.findByIdAndDelete(existingOrder._id);
+  }
+
+  // Remove pedidos incompletos deste usuário (sem canal criado) para evitar acúmulo
+  // Nota: pedidos com canal ativo já foram tratados acima (guarda duplo-clique)
   await Order.deleteMany({
     guildId: interaction.guildId,
     userId,
@@ -694,11 +715,10 @@ async function handleLojaProduto(interaction, productType) {
       ticketMessageId: ticketMsg.id,
     });
 
-    // Desativar botões da mensagem home para evitar re-uso
-    await interaction.editReply({
+    // Responde somente para quem clicou (ephemeral) sem alterar a mensagem home
+    await interaction.followUp({
       content: `✅ Ticket criado! Vá para <#${channel.id}>`,
-      embeds: [],
-      components: [],
+      ephemeral: true,
     });
   } catch (err) {
     console.error("[shop] Erro ao criar ticket:", err);
