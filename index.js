@@ -570,17 +570,30 @@ async function handleLojaCommand(interaction) {
 
 // Botão: Comprar Robux / Comprar Gamepass → cria ticket imediatamente e posta termos nele
 async function handleLojaProduto(interaction, productType) {
-  await interaction.deferUpdate();
+  await interaction.deferReply({ ephemeral: true });
 
   const userId = interaction.user.id;
 
   // Verificar se a categoria existe
   const category = interaction.guild.channels.cache.get(SHOP_CATEGORY_ID);
   if (!category) {
-    await interaction.followUp({
+    await interaction.editReply({
       content:
         "❌ Categoria de tickets não encontrada. Contate um admin para configurar `SHOP_CATEGORY_ID`.",
-      ephemeral: true,
+    });
+    return;
+  }
+
+  // Se o usuário já tem um ticket aberto (com canal), redireciona para ele
+  const existingOrder = await Order.findOne({
+    guildId: interaction.guildId,
+    userId,
+    channelId: { $ne: null },
+    status: { $in: ["open", "pending_payment", "awaiting_gamepass"] },
+  });
+  if (existingOrder) {
+    await interaction.editReply({
+      content: `⚠️ Você já tem um ticket aberto! Vá para <#${existingOrder.channelId}>`,
     });
     return;
   }
@@ -694,18 +707,15 @@ async function handleLojaProduto(interaction, productType) {
       ticketMessageId: ticketMsg.id,
     });
 
-    // Desativar botões da mensagem home para evitar re-uso
+    // Responde de forma ephemeral ao clicker com o link do ticket (mensagem /loja fica intacta)
     await interaction.editReply({
       content: `✅ Ticket criado! Vá para <#${channel.id}>`,
-      embeds: [],
-      components: [],
     });
   } catch (err) {
     console.error("[shop] Erro ao criar ticket:", err);
     await Order.findByIdAndDelete(order._id);
-    await interaction.followUp({
+    await interaction.editReply({
       content: "❌ Erro ao criar ticket. Tente novamente ou contate um admin.",
-      ephemeral: true,
     });
   }
 }
