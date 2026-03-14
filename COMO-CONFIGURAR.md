@@ -77,7 +77,7 @@ O comando `/loja` usa o seguinte fluxo:
 1. **Tela inicial** — exibe o embed "Heaven's Market" com **2 botões**:
    - **💎 Comprar Robux!**
    - **🎮 Comprar Gamepass!**
-2. **Clique em qualquer botão** — o bot cria um **canal de ticket** imediatamente na categoria configurada, posta os termos de uso dentro do ticket com o botão **📝 Inserir Nickname do Roblox**, e remove os botões da mensagem original.
+2. **Clique em qualquer botão** — o bot cria um **canal de ticket** imediatamente na categoria configurada, posta os termos de uso dentro do ticket com o botão **📝 Inserir Nickname do Roblox**, e responde ao clicante com uma **mensagem efêmera** (visível só para ele) indicando o canal criado. A mensagem original do `/loja` **permanece intacta** com os botões disponíveis para todos.
 3. **Dentro do ticket** — o usuário clica em **Inserir Nickname do Roblox**, confirma a conta Roblox, define a quantidade e segue para o pagamento.
 
 O produto escolhido (Robux ou Gamepass) é salvo no pedido para que a equipe saiba o que entregar.

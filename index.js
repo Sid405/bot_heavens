@@ -570,19 +570,35 @@ async function handleLojaCommand(interaction) {
 
 // Botão: Comprar Robux / Comprar Gamepass → cria ticket imediatamente e posta termos nele
 async function handleLojaProduto(interaction, productType) {
-  await interaction.deferUpdate();
+  await interaction.deferReply({ ephemeral: true });
 
   const userId = interaction.user.id;
 
   // Verificar se a categoria existe
   const category = interaction.guild.channels.cache.get(SHOP_CATEGORY_ID);
   if (!category) {
-    await interaction.followUp({
+    await interaction.editReply({
       content:
         "❌ Categoria de tickets não encontrada. Contate um admin para configurar `SHOP_CATEGORY_ID`.",
-      ephemeral: true,
     });
     return;
+  }
+
+  // Verificar se o usuário já tem um ticket aberto com canal ativo
+  const existingOrder = await Order.findOne({
+    guildId: interaction.guildId,
+    userId,
+    channelId: { $ne: null },
+    status: { $in: ["open", "pending_payment", "awaiting_gamepass"] },
+  });
+  if (existingOrder) {
+    const existingChannel = interaction.guild.channels.cache.get(existingOrder.channelId);
+    if (existingChannel) {
+      await interaction.editReply({
+        content: `⚠️ Você já tem um ticket aberto! Vá para <#${existingChannel.id}>`,
+      });
+      return;
+    }
   }
 
   // Remove pedidos abertos anteriores deste usuário (sem nick ainda) para evitar acúmulo
@@ -694,18 +710,15 @@ async function handleLojaProduto(interaction, productType) {
       ticketMessageId: ticketMsg.id,
     });
 
-    // Desativar botões da mensagem home para evitar re-uso
+    // Confirmar ao usuário via resposta ephemeral — a mensagem home do /loja não é editada
     await interaction.editReply({
       content: `✅ Ticket criado! Vá para <#${channel.id}>`,
-      embeds: [],
-      components: [],
     });
   } catch (err) {
     console.error("[shop] Erro ao criar ticket:", err);
     await Order.findByIdAndDelete(order._id);
-    await interaction.followUp({
+    await interaction.editReply({
       content: "❌ Erro ao criar ticket. Tente novamente ou contate um admin.",
-      ephemeral: true,
     });
   }
 }
