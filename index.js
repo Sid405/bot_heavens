@@ -32,7 +32,8 @@ const CONFIG_API_KEY = process.env.CONFIG_API_KEY || "";
 
 // Loja
 const SHOP_CATEGORY_ID = process.env.SHOP_CATEGORY_ID || "1395903305623932979";
-const ROBUX_PRICE_BRL = parseFloat(process.env.ROBUX_PRICE_BRL || "0.035");
+const ROBUX_PRICE_BRL = parseFloat(process.env.ROBUX_PRICE_BRL || "0.045");
+const GAMEPASS_PRICE_BRL = parseFloat(process.env.GAMEPASS_PRICE_BRL || "0.034");
 const MIN_ROBUX_QUANTITY = 99;
 const PIX_KEY = process.env.PIX_KEY || "";
 const PIX_MERCHANT_NAME = (process.env.PIX_MERCHANT_NAME || "Loja").slice(
@@ -162,8 +163,10 @@ function buildRobloxConfirmEmbed(robloxUser) {
     .setColor(0x5865f2);
 }
 
-function calcTotal(quantity, discountAmount) {
-  const subtotal = quantity * ROBUX_PRICE_BRL;
+function calcTotal(quantity, discountAmount, productType = "robux") {
+  const pricePerUnit =
+    productType === "gamepass" ? GAMEPASS_PRICE_BRL : ROBUX_PRICE_BRL;
+  const subtotal = quantity * pricePerUnit;
   return Math.max(0, subtotal - (discountAmount || 0));
 }
 
@@ -172,7 +175,7 @@ function formatBRL(value) {
 }
 
 function buildOrderEmbed(order) {
-  const total = calcTotal(order.quantity, order.discountAmount);
+  const total = calcTotal(order.quantity, order.discountAmount, order.productType);
   const statusEmoji =
     {
       open: "🟢",
@@ -305,7 +308,7 @@ const slashCommands = [
     .setName("pedidos-pendentes")
     .setDescription("Lista pedidos pendentes (apenas admins)")
     .setDefaultMemberPermissions(
-      PermissionsBitField.Flags.ManageChannels.toString()
+      PermissionsBitField.Flags.Administrator.toString()
     ),
 ].map((c) => c.toJSON());
 
@@ -565,39 +568,146 @@ async function handleLojaCommand(interaction) {
   await interaction.reply({ embeds: [embed], components: [row] });
 }
 
-// Botão: Comprar Robux / Comprar Gamepass → exibe termos + Iniciar Compra / Cancelar
-async function handleLojaProduto(interaction, productType, ownerId) {
-  if (await rejectIfNotOwner(interaction, ownerId)) return;
+// Botão: Comprar Robux / Comprar Gamepass → cria ticket imediatamente e posta termos nele
+async function handleLojaProduto(interaction, productType) {
+  await interaction.deferUpdate();
+
+  const userId = interaction.user.id;
+
+  // Verificar se a categoria existe
+  const category = interaction.guild.channels.cache.get(SHOP_CATEGORY_ID);
+  if (!category) {
+    await interaction.followUp({
+      content:
+        "❌ Categoria de tickets não encontrada. Contate um admin para configurar `SHOP_CATEGORY_ID`.",
+      ephemeral: true,
+    });
+    return;
+  }
+
+  // Remove pedidos abertos anteriores deste usuário (sem nick ainda) para evitar acúmulo
+  await Order.deleteMany({
+    guildId: interaction.guildId,
+    userId,
+    channelId: null,
+  });
+
+  const order = await Order.create({
+    guildId: interaction.guildId,
+    userId,
+    productType: productType === "gamepass" ? "gamepass" : "robux",
+    status: "open",
+  });
+
+  const me = interaction.guild.members.me;
+  const adminRoles = interaction.guild.roles.cache.filter(
+    (r) =>
+      !r.managed &&
+      r.id !== interaction.guild.id &&
+      (r.permissions.has(PermissionsBitField.Flags.ManageChannels) ||
+        r.permissions.has(PermissionsBitField.Flags.Administrator))
+  );
+
+  const permissionOverwrites = [
+    {
+      id: interaction.guild.id,
+      deny: [PermissionsBitField.Flags.ViewChannel],
+    },
+    {
+      id: userId,
+      allow: [
+        PermissionsBitField.Flags.ViewChannel,
+        PermissionsBitField.Flags.SendMessages,
+        PermissionsBitField.Flags.ReadMessageHistory,
+      ],
+    },
+  ];
+
+  if (me) {
+    permissionOverwrites.push({
+      id: me.id,
+      allow: [
+        PermissionsBitField.Flags.ViewChannel,
+        PermissionsBitField.Flags.SendMessages,
+        PermissionsBitField.Flags.ManageChannels,
+        PermissionsBitField.Flags.ReadMessageHistory,
+      ],
+    });
+  }
+
+  for (const [, role] of adminRoles) {
+    permissionOverwrites.push({
+      id: role.id,
+      allow: [
+        PermissionsBitField.Flags.ViewChannel,
+        PermissionsBitField.Flags.SendMessages,
+        PermissionsBitField.Flags.ReadMessageHistory,
+      ],
+    });
+  }
 
   const productLabel = getProductLabel(productType);
 
-  const embed = new EmbedBuilder()
-    .setTitle("📜 Termos de Uso — Heaven's Market")
-    .setDescription(
-      `Você selecionou: **${productLabel}**\n\n` +
-        "Antes de continuar, leia os nossos termos:\n\n" +
-        "• Os pedidos são processados manualmente e podem levar algumas horas.\n" +
-        "• Não realizamos reembolsos após confirmação do pagamento.\n" +
-        "• Você precisa fornecer o nick correto do Roblox.\n" +
-        "• Ao iniciar a compra, você concorda com os termos acima.\n\n" +
-        "Clique em **Iniciar Compra** para continuar! 🚀"
-    )
-    .setColor(0x57f287)
-    .setFooter({ text: "Heaven's Market" })
-    .setTimestamp();
+  try {
+    const channel = await interaction.guild.channels.create({
+      name: `🟢・ticket-${userId.slice(-4)}`,
+      type: ChannelType.GuildText,
+      parent: SHOP_CATEGORY_ID,
+      permissionOverwrites,
+    });
 
-  const row = new ActionRowBuilder().addComponents(
-    new ButtonBuilder()
-      .setCustomId(`loja_iniciar_${productType}_${ownerId}`)
-      .setLabel("🛒 Iniciar Compra")
-      .setStyle(ButtonStyle.Success),
-    new ButtonBuilder()
-      .setCustomId(`loja_cancelar_${ownerId}`)
-      .setLabel("✖ Cancelar")
-      .setStyle(ButtonStyle.Danger)
-  );
+    // Postar termos dentro do ticket
+    const termsEmbed = new EmbedBuilder()
+      .setTitle("📜 Termos de Uso — Heaven's Market")
+      .setDescription(
+        `Produto: **${productLabel}**\n\n` +
+          "Antes de continuar, leia os nossos termos:\n\n" +
+          "• Os pedidos são processados manualmente e podem levar algumas horas.\n" +
+          "• Não realizamos reembolsos após confirmação do pagamento.\n" +
+          "• Você precisa fornecer o nick correto do Roblox.\n" +
+          "• Ao iniciar a compra, você concorda com os termos acima.\n\n" +
+          "Clique em **Inserir Nickname do Roblox** para continuar! 🚀"
+      )
+      .setColor(0x57f287)
+      .setFooter({ text: "Heaven's Market" })
+      .setTimestamp();
 
-  await interaction.update({ embeds: [embed], components: [row] });
+    const nickRow = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId(`loja_nick_${order._id}`)
+        .setLabel("📝 Inserir Nickname do Roblox")
+        .setStyle(ButtonStyle.Primary),
+      new ButtonBuilder()
+        .setCustomId(`loja_fechar_${order._id}`)
+        .setLabel("✖ Cancelar")
+        .setStyle(ButtonStyle.Danger)
+    );
+
+    const ticketMsg = await channel.send({
+      content: `<@${userId}>`,
+      embeds: [termsEmbed],
+      components: [nickRow],
+    });
+
+    await Order.findByIdAndUpdate(order._id, {
+      channelId: channel.id,
+      ticketMessageId: ticketMsg.id,
+    });
+
+    // Desativar botões da mensagem home para evitar re-uso
+    await interaction.editReply({
+      content: `✅ Ticket criado! Vá para <#${channel.id}>`,
+      embeds: [],
+      components: [],
+    });
+  } catch (err) {
+    console.error("[shop] Erro ao criar ticket:", err);
+    await Order.findByIdAndDelete(order._id);
+    await interaction.followUp({
+      content: "❌ Erro ao criar ticket. Tente novamente ou contate um admin.",
+      ephemeral: true,
+    });
+  }
 }
 
 // /pedidos-pendentes — lista pedidos pendentes (admin)
@@ -652,7 +762,7 @@ async function handleLojaIniciarProduto(interaction, productType, ownerId) {
   );
 }
 
-// Botão: Cancelar → remove embed (com verificação de dono)
+// Botão: Cancelar (fluxo antigo) → remove embed
 async function handleLojaCancelar(interaction, ownerId) {
   if (ownerId && await rejectIfNotOwner(interaction, ownerId)) return;
   await interaction.update({
@@ -662,7 +772,39 @@ async function handleLojaCancelar(interaction, ownerId) {
   });
 }
 
-// Botão: Sim, sou eu → cria ticket
+// Botão: Fechar ticket (novo fluxo) → cancela pedido e deleta canal
+async function handleLojaFechar(interaction, orderId) {
+  const order = await Order.findById(orderId);
+  if (order) {
+    if (
+      order.userId !== interaction.user.id &&
+      !interaction.member?.permissions.has(PermissionsBitField.Flags.Administrator)
+    ) {
+      await interaction.reply({
+        content: "❌ Este botão não é para você.",
+        ephemeral: true,
+      });
+      return;
+    }
+    await Order.findByIdAndUpdate(orderId, { status: "cancelled" });
+  }
+
+  await interaction.update({
+    content: "✖ Compra cancelada. O canal será fechado em instantes...",
+    embeds: [],
+    components: [],
+  });
+
+  setTimeout(async () => {
+    try {
+      await interaction.channel.delete();
+    } catch {
+      // Sem permissão para deletar — ignora
+    }
+  }, 5000);
+}
+
+// Botão: Sim, sou eu
 async function handleLojaSim(interaction, orderId) {
   await interaction.deferUpdate();
 
@@ -675,15 +817,56 @@ async function handleLojaSim(interaction, orderId) {
     });
   }
 
-  // Verificar se já existe ticket para este pedido
+  // Novo fluxo: ticket já existe — postar embed de pedido no canal do ticket
   if (order.channelId) {
+    const ticketChannel = interaction.guild.channels.cache.get(order.channelId);
+    if (!ticketChannel) {
+      return interaction.editReply({
+        content: "❌ Canal do ticket não encontrado.",
+        embeds: [],
+        components: [],
+      });
+    }
+
+    // Desativar botões da mensagem de termos (impede novo clique em Inserir Nickname)
+    if (order.ticketMessageId) {
+      try {
+        const termsMsg = await ticketChannel.messages.fetch(order.ticketMessageId);
+        if (termsMsg) await termsMsg.edit({ components: [] });
+      } catch {
+        // Ignora se não conseguir editar
+      }
+    }
+
+    // Renomear canal com nick do Roblox
+    try {
+      const safeName = (order.robloxUsername || "usuario")
+        .toLowerCase()
+        .replace(/[^a-z0-9_]/g, "")
+        .slice(0, 20);
+      await ticketChannel.setName(`🟢・ticket-${safeName}`);
+    } catch {
+      // Sem permissão para renomear — ignora
+    }
+
+    const orderEmbed = buildOrderEmbed(order);
+    const buttons = buildOrderButtons(order._id);
+    const newMsg = await ticketChannel.send({
+      content: `<@${order.userId}>`,
+      embeds: [orderEmbed],
+      components: [buttons],
+    });
+
+    await Order.findByIdAndUpdate(orderId, { ticketMessageId: newMsg.id });
+
     return interaction.editReply({
-      content: `✅ Ticket já existe: <#${order.channelId}>`,
+      content: `✅ Perfil confirmado! Veja seu pedido em <#${order.channelId}>.`,
       embeds: [],
       components: [],
     });
   }
 
+  // Fluxo legado (pedidos sem channelId): criar ticket agora
   try {
     const me = interaction.guild.members.me;
     const adminRoles = interaction.guild.roles.cache.filter(
@@ -732,15 +915,8 @@ async function handleLojaSim(interaction, orderId) {
       });
     }
 
-    const safeName = (order.robloxUsername || "usuario")
-      .toLowerCase()
-      .replace(/[^a-z0-9_]/g, "")
-      .slice(0, 20);
-
-    // Verificar se a categoria existe e está acessível
     const category = interaction.guild.channels.cache.get(SHOP_CATEGORY_ID);
     if (!category) {
-      console.error(`[shop] Categoria de tickets não encontrada: ${SHOP_CATEGORY_ID}`);
       return interaction.editReply({
         content:
           "❌ Categoria de tickets não encontrada. Contate um admin para configurar `SHOP_CATEGORY_ID`.",
@@ -748,6 +924,11 @@ async function handleLojaSim(interaction, orderId) {
         components: [],
       });
     }
+
+    const safeName = (order.robloxUsername || "usuario")
+      .toLowerCase()
+      .replace(/[^a-z0-9_]/g, "")
+      .slice(0, 20);
 
     const channel = await interaction.guild.channels.create({
       name: `🟢・ticket-${safeName}`,
@@ -853,9 +1034,78 @@ async function handleTicketPagar(interaction, orderId) {
     return;
   }
 
-  const total = calcTotal(order.quantity, order.discountAmount);
+  const total = calcTotal(order.quantity, order.discountAmount, order.productType);
   const totalFormatted = formatBRL(total);
 
+  if (order.productType === "gamepass") {
+    // Fluxo de gamepass: calcular Robux necessário para criação da gamepass
+    const requiredRobux = Math.ceil(order.quantity / 0.7);
+
+    let pixContent = "";
+    if (PIX_KEY) {
+      const payload = generatePixPayload(
+        PIX_KEY,
+        PIX_MERCHANT_NAME,
+        PIX_CITY,
+        total
+      );
+      pixContent = `\n\n**📋 Copia e Cola PIX:**\n\`\`\`\n${payload}\n\`\`\``;
+    } else {
+      pixContent =
+        "\n\n*⚠️ Chave PIX não configurada. Entre em contato com um admin para receber os dados de pagamento.*";
+    }
+
+    const gpEmbed = new EmbedBuilder()
+      .setTitle("🎮 Pagamento — Gamepass")
+      .setDescription(
+        `**Valor a pagar: ${totalFormatted}**\n` +
+          `Quantidade: ${order.quantity} Robux Taxados\n` +
+          (order.couponCode ? `Cupom: ${order.couponCode}\n` : "") +
+          pixContent +
+          "\n\n**Instruções para criar sua Gamepass:**\n" +
+          `1. Realize o pagamento de **${totalFormatted}** via PIX.\n` +
+          `2. Crie uma **Gamepass** no Roblox com valor de **${requiredRobux} Robux**.\n` +
+          `3. Após criar a gamepass, clique em **Inserir Gamepass ID** abaixo.\n\n` +
+          "Após o pagamento e envio do ID, nossa equipe irá completar a entrega."
+      )
+      .setColor(0xfee75c)
+      .setTimestamp();
+
+    const gpRow = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId(`ticket_gp_id_${orderId}`)
+        .setLabel("🔗 Inserir Gamepass ID")
+        .setStyle(ButtonStyle.Primary)
+    );
+
+    const updatedOrder = await Order.findByIdAndUpdate(
+      orderId,
+      {
+        status: "pending_payment",
+        totalAmount: total,
+        gamepassRequiredRobux: requiredRobux,
+      },
+      { new: true }
+    );
+
+    try {
+      if (interaction.channel) {
+        const safeName = (order.robloxUsername || "usuario")
+          .toLowerCase()
+          .replace(/[^a-z0-9_]/g, "")
+          .slice(0, 20);
+        await interaction.channel.setName(`🟡・ticket-${safeName}`);
+      }
+    } catch {
+      // Sem permissão para renomear — ignora
+    }
+
+    await updateTicketEmbed(interaction.guild, updatedOrder._id);
+    await interaction.channel.send({ embeds: [gpEmbed], components: [gpRow] });
+    return;
+  }
+
+  // Fluxo de Robux: pagamento padrão via PIX
   let pixContent = "";
   if (PIX_KEY) {
     const payload = generatePixPayload(
@@ -915,8 +1165,8 @@ async function handleTicketEditar(interaction, orderId) {
   );
 }
 
-// Modal: primeiro nickname (/loja → Iniciar Compra → modal)
-async function handleModalNickname(interaction, productType = "robux") {
+// Modal: nickname vindo do ticket (novo fluxo) ou do /loja (fluxo antigo)
+async function handleModalNickname(interaction, orderId = null, productType = "robux") {
   await interaction.deferReply({ ephemeral: true });
 
   const nickname = interaction.fields.getTextInputValue("nickname");
@@ -929,22 +1179,39 @@ async function handleModalNickname(interaction, productType = "robux") {
     });
   }
 
-  // Remove pedidos abertos anteriores deste usuário (sem canal criado) para evitar acúmulo
-  await Order.deleteMany({
-    guildId: interaction.guildId,
-    userId: interaction.user.id,
-    channelId: null,
-  });
+  let order;
+  if (orderId) {
+    // Novo fluxo: atualizar pedido existente (ticket já criado)
+    order = await Order.findByIdAndUpdate(
+      orderId,
+      {
+        robloxUserId: String(robloxUser.userId),
+        robloxUsername: robloxUser.username,
+        robloxDisplayName: robloxUser.displayName,
+      },
+      { new: true }
+    );
+  } else {
+    // Fluxo antigo: criar pedido novo
+    await Order.deleteMany({
+      guildId: interaction.guildId,
+      userId: interaction.user.id,
+      channelId: null,
+    });
+    order = await Order.create({
+      guildId: interaction.guildId,
+      userId: interaction.user.id,
+      robloxUserId: String(robloxUser.userId),
+      robloxUsername: robloxUser.username,
+      robloxDisplayName: robloxUser.displayName,
+      productType: productType === "gamepass" ? "gamepass" : "robux",
+      status: "open",
+    });
+  }
 
-  const order = await Order.create({
-    guildId: interaction.guildId,
-    userId: interaction.user.id,
-    robloxUserId: String(robloxUser.userId),
-    robloxUsername: robloxUser.username,
-    robloxDisplayName: robloxUser.displayName,
-    productType: productType === "gamepass" ? "gamepass" : "robux",
-    status: "open",
-  });
+  if (!order) {
+    return interaction.editReply({ content: "❌ Pedido não encontrado." });
+  }
 
   const embed = buildRobloxConfirmEmbed(robloxUser);
   const row = new ActionRowBuilder().addComponents(
@@ -1048,7 +1315,12 @@ async function handleModalQtd(interaction, orderId) {
     });
   }
 
-  const total = calcTotal(qty, 0);
+  const existingOrder = await Order.findById(orderId);
+  if (!existingOrder) {
+    return interaction.editReply({ content: "❌ Pedido não encontrado." });
+  }
+
+  const total = calcTotal(qty, 0, existingOrder.productType);
   const order = await Order.findByIdAndUpdate(
     orderId,
     {
@@ -1095,6 +1367,65 @@ async function handleModalCupom(interaction, orderId) {
   });
 }
 
+// ========== NOVOS HANDLERS: fluxo de ticket imediato ==========
+
+// Botão: Inserir Nickname do Roblox (dentro do ticket)
+async function handleLojaNickButton(interaction, orderId) {
+  const order = await Order.findById(orderId);
+  if (!order) {
+    await interaction.reply({ content: "❌ Pedido não encontrado.", ephemeral: true });
+    return;
+  }
+  if (order.userId !== interaction.user.id) {
+    await interaction.reply({ content: "❌ Este botão não é para você.", ephemeral: true });
+    return;
+  }
+  await interaction.showModal(buildNicknameModal(`loja_nick_modal_${orderId}`));
+}
+
+// Botão: Inserir Gamepass ID
+async function handleTicketGamepassId(interaction, orderId) {
+  const modal = new ModalBuilder()
+    .setCustomId(`ticket_modal_gp_id_${orderId}`)
+    .setTitle("ID ou Link da Gamepass");
+  modal.addComponents(
+    new ActionRowBuilder().addComponents(
+      new TextInputBuilder()
+        .setCustomId("gamepass_id")
+        .setLabel("Link ou ID da sua Gamepass no Roblox")
+        .setStyle(TextInputStyle.Short)
+        .setPlaceholder("Ex: https://www.roblox.com/game-pass/1234567")
+        .setRequired(true)
+        .setMinLength(3)
+        .setMaxLength(200)
+    )
+  );
+  await interaction.showModal(modal);
+}
+
+// Modal: gamepass ID submetido
+async function handleModalGamepassId(interaction, orderId) {
+  await interaction.deferReply({ ephemeral: true });
+
+  const gpId = interaction.fields.getTextInputValue("gamepass_id").trim();
+
+  const order = await Order.findByIdAndUpdate(
+    orderId,
+    { gamepassLink: gpId, status: "awaiting_gamepass" },
+    { new: true }
+  );
+
+  if (!order) {
+    return interaction.editReply({ content: "❌ Pedido não encontrado." });
+  }
+
+  await updateTicketEmbed(interaction.guild, orderId);
+  await interaction.editReply({
+    content:
+      "✅ Gamepass registrada! Nossa equipe irá verificar e completar a entrega em breve.",
+  });
+}
+
 // ========== INTERAÇÃO CENTRAL ==========
 client.on("interactionCreate", async (interaction) => {
   try {
@@ -1112,22 +1443,25 @@ client.on("interactionCreate", async (interaction) => {
     if (interaction.isButton()) {
       const id = interaction.customId;
       if (id.startsWith("loja_produto_robux_")) {
-        const ownerId = id.slice("loja_produto_robux_".length);
-        await handleLojaProduto(interaction, "robux", ownerId);
+        await handleLojaProduto(interaction, "robux");
       } else if (id.startsWith("loja_produto_gamepass_")) {
-        const ownerId = id.slice("loja_produto_gamepass_".length);
-        await handleLojaProduto(interaction, "gamepass", ownerId);
+        await handleLojaProduto(interaction, "gamepass");
+      } else if (id.startsWith("loja_nick_")) {
+        await handleLojaNickButton(interaction, id.slice("loja_nick_".length));
+      } else if (id.startsWith("loja_fechar_")) {
+        await handleLojaFechar(interaction, id.slice("loja_fechar_".length));
       } else if (id.startsWith("loja_iniciar_robux_")) {
+        // backward compat: old messages with Iniciar Compra button
         const ownerId = id.slice("loja_iniciar_robux_".length);
         await handleLojaIniciarProduto(interaction, "robux", ownerId);
       } else if (id.startsWith("loja_iniciar_gamepass_")) {
+        // backward compat
         const ownerId = id.slice("loja_iniciar_gamepass_".length);
         await handleLojaIniciarProduto(interaction, "gamepass", ownerId);
       } else if (id.startsWith("loja_cancelar_")) {
         const ownerId = id.slice("loja_cancelar_".length);
         await handleLojaCancelar(interaction, ownerId);
       } else if (id === "loja_cancelar") {
-        // backward compat: old messages without ownerId suffix
         await handleLojaCancelar(interaction, null);
       } else if (id.startsWith("loja_sim_")) {
         await handleLojaSim(interaction, id.slice("loja_sim_".length));
@@ -1144,6 +1478,11 @@ client.on("interactionCreate", async (interaction) => {
           interaction,
           id.slice("ticket_editar_".length)
         );
+      } else if (id.startsWith("ticket_gp_id_")) {
+        await handleTicketGamepassId(
+          interaction,
+          id.slice("ticket_gp_id_".length)
+        );
       }
       return;
     }
@@ -1151,13 +1490,20 @@ client.on("interactionCreate", async (interaction) => {
     // Modais
     if (interaction.isModalSubmit()) {
       const id = interaction.customId;
-      if (id === "loja_modal_nickname_robux") {
-        await handleModalNickname(interaction, "robux");
+      if (id.startsWith("loja_nick_modal_")) {
+        // Novo fluxo: nick inserido de dentro do ticket
+        await handleModalNickname(
+          interaction,
+          id.slice("loja_nick_modal_".length),
+          null
+        );
+      } else if (id === "loja_modal_nickname_robux") {
+        await handleModalNickname(interaction, null, "robux");
       } else if (id === "loja_modal_nickname_gamepass") {
-        await handleModalNickname(interaction, "gamepass");
+        await handleModalNickname(interaction, null, "gamepass");
       } else if (id === "loja_modal_nickname") {
-        // backward compat: old messages that used the generic modal id
-        await handleModalNickname(interaction, "robux");
+        // backward compat
+        await handleModalNickname(interaction, null, "robux");
       } else if (id.startsWith("loja_modal_reconfirmar_")) {
         await handleModalReconfirmar(
           interaction,
@@ -1177,6 +1523,11 @@ client.on("interactionCreate", async (interaction) => {
         await handleModalCupom(
           interaction,
           id.slice("ticket_modal_cupom_".length)
+        );
+      } else if (id.startsWith("ticket_modal_gp_id_")) {
+        await handleModalGamepassId(
+          interaction,
+          id.slice("ticket_modal_gp_id_".length)
         );
       }
       return;

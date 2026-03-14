@@ -19,6 +19,7 @@ const orderSchema = new mongoose.Schema(
     discountAmount: { type: Number, default: 0 },
     totalAmount: { type: Number, default: 0 },
     gamepassLink: { type: String, default: null },
+    gamepassRequiredRobux: { type: Number, default: null },
     status: {
       type: String,
       enum: [
