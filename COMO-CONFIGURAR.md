@@ -72,18 +72,22 @@ Se você **não** colocar `CONFIG_API_KEY`, o bot roda normal, mas a API do pain
 
 #### Fluxo de dois passos do `/loja`
 
-O comando `/loja` agora usa um fluxo de dois passos:
+O comando `/loja` usa o seguinte fluxo:
 
 1. **Tela inicial** — exibe o embed "Heaven's Market" com **2 botões**:
    - **💎 Comprar Robux!**
    - **🎮 Comprar Gamepass!**
-2. **Tela de termos** — ao clicar em qualquer botão de produto, o embed é substituído pelos termos de uso e 2 novos botões:
-   - **🛒 Iniciar Compra** — abre o modal para informar o nick do Roblox e segue o fluxo de criação de ticket.
-   - **✖ Cancelar** — cancela a compra e remove o embed.
+2. **Clique em qualquer botão** — o bot cria um **canal de ticket** imediatamente na categoria configurada, posta os termos de uso dentro do ticket com o botão **📝 Inserir Nickname do Roblox**, e remove os botões da mensagem original.
+3. **Dentro do ticket** — o usuário clica em **Inserir Nickname do Roblox**, confirma a conta Roblox, define a quantidade e segue para o pagamento.
 
 O produto escolhido (Robux ou Gamepass) é salvo no pedido para que a equipe saiba o que entregar.
 
-> **Obs.:** Somente o usuário que executou `/loja` pode interagir com os botões gerados. Outros membros verão um aviso efêmero ao tentar clicar.
+**Preços:**
+- **Robux:** R$ 0,045 por Robux taxado (1 000 → R$ 45,00)
+- **Gamepass:** R$ 0,034 por Robux taxado (1 000 → R$ 34,00)
+- **Gamepass — valor da gamepass:** calculado como `ceil(quantidadeTaxada / 0,7)` (ex.: 1 000 Robux taxados → criar gamepass com 1 429 Robux)
+
+> **Obs.:** Qualquer membro pode clicar nos botões da home e abrir seu próprio ticket.
 
 Para usar os comandos `/loja` e `/pedidos-pendentes`, adicione ao `.env`:
 
@@ -91,8 +95,11 @@ Para usar os comandos `/loja` e `/pedidos-pendentes`, adicione ao `.env`:
 # ID da categoria do Discord onde os tickets de compra serão criados
 SHOP_CATEGORY_ID=123456789012345678
 
-# Preço de 1 Robux em reais (ex: 0.035 = R$ 0,035 por Robux)
-ROBUX_PRICE_BRL=0.035
+# Preço de 1 Robux em reais (ex: 0.045 = R$ 0,045 por Robux)
+ROBUX_PRICE_BRL=0.045
+
+# Preço de 1 Robux em reais para compra via Gamepass
+GAMEPASS_PRICE_BRL=0.034
 
 # Chave PIX para geração do código Copia e Cola (deixe em branco para usar placeholder)
 PIX_KEY=sua_chave_pix_aqui
@@ -103,7 +110,8 @@ PIX_CITY=Sua Cidade
 | Variável | Obrigatória? | Descrição |
 |---|---|---|
 | `SHOP_CATEGORY_ID` | Não (padrão: `1395903305623932979`) | ID da categoria onde os tickets são criados |
-| `ROBUX_PRICE_BRL` | Não (padrão: `0.035`) | Valor em reais por unidade de Robux |
+| `ROBUX_PRICE_BRL` | Não (padrão: `0.045`) | Valor em reais por unidade de Robux (compra normal) |
+| `GAMEPASS_PRICE_BRL` | Não (padrão: `0.034`) | Valor em reais por unidade de Robux (compra via Gamepass) |
 | `PIX_KEY` | Não | Chave PIX (CPF, email, celular ou chave aleatória). Se vazia, exibe placeholder |
 | `PIX_MERCHANT_NAME` | Não (padrão: `Loja`) | Nome que aparece no código PIX |
 | `PIX_CITY` | Não (padrão: `Brasil`) | Cidade que aparece no código PIX |
@@ -111,6 +119,8 @@ PIX_CITY=Sua Cidade
 > **Permissões necessárias para a loja:** o bot precisa de **Manage Channels** na categoria de tickets e **Send Messages** + **Embed Links** nos canais criados.
 
 > **Slash commands:** os comandos `/loja` e `/pedidos-pendentes` são registrados automaticamente ao iniciar o bot. Pode levar alguns minutos para aparecerem no Discord pela primeira vez.
+
+> **Admin:** o comando `/pedidos-pendentes` requer permissão de **Administrator** no servidor.
 
 ---
 
