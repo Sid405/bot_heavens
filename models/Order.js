@@ -20,6 +20,27 @@ const orderSchema = new mongoose.Schema(
     totalAmount: { type: Number, default: 0 },
     gamepassLink: { type: String, default: null },
     gamepassRequiredRobux: { type: Number, default: null },
+    codexPaymentId: { type: String, default: null },
+    // Carrinho in-game
+    cartItems: {
+      type: [{
+        gameName: String,
+        gameEmoji: String,
+        categoryName: String,
+        productName: String,
+        price: Number,
+        quantity: { type: Number, default: 1 },
+        subtotal: { type: Number, default: 0 },
+      }],
+      default: [],
+    },
+    catalogMenuMessageId: { type: String, default: null },
+    // Campos do catálogo in-game
+    catalogGameId: { type: String, default: null },
+    catalogGameName: { type: String, default: null },
+    catalogGameEmoji: { type: String, default: null },
+    catalogCategoryName: { type: String, default: null },
+    catalogProductName: { type: String, default: null },
     status: {
       type: String,
       enum: [
