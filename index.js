@@ -500,8 +500,8 @@ client.once("clientReady", async () => {
   console.log(`Bot online: ${client.user.tag} — prefixo: ${PREFIX}comando`);
   try {
     const rest = new REST({ version: "10" }).setToken(BOT_TOKEN);
-    await rest.put(Routes.applicationCommands(CLIENT_ID), { body: slashCommands });
-    console.log("Slash commands /loja e /pedidos-pendentes registrados.");
+    await rest.put(Routes.applicationGuildCommands(CLIENT_ID, "1125234022432383037"), { body: slashCommands });
+    console.log("Slash commands registrados no servidor.");
   } catch (err) {
     console.error("[slash] Erro ao registrar slash commands:", err);
   }
