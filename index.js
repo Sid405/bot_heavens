@@ -194,56 +194,53 @@ function buildOrderEmbed(order) {
   const productLabel = getProductLabel(order.productType);
   const pricePerUnit = order.productType === "gamepass" ? GAMEPASS_PRICE_BRL : ROBUX_PRICE_BRL;
 
-  const statusLine = {
-    open: "🟢 Aberto — aguardando definição de quantidade",
+  const statusMap = {
+    open: "🟢 Aguardando quantidade",
     pending_payment: "🟡 Aguardando pagamento",
     paid: "✅ Pagamento confirmado",
-    awaiting_gamepass: "🔵 Aguardando criação da Gamepass",
+    awaiting_gamepass: "🔵 Aguardando Gamepass",
     delivered: "✅ Entregue",
     cancelled: "❌ Cancelado",
-  }[order.status] || "⚪ Desconhecido";
+  };
 
-  const embed = new EmbedBuilder()
-    .setTitle("🎉 Bem-vindo à parte mais emocionante!")
+  return new EmbedBuilder()
+    .setTitle(`🎉 Carrinho de ${productLabel} — Heaven's Market`)
     .setDescription(
-      `Escolha quantos **${productLabel}** vão chegar à sua conta.\n` +
-      `> 📌 Quantidade mínima: **${MIN_ROBUX_QUANTITY} Robux**\n` +
-      `> 💡 *Define o valor com cuidado — ele será usado no cálculo final do pagamento.*`
+      `> Olá <@${order.userId}>! Defina a quantidade e siga para o pagamento.\n` +
+      `> Quantidade mínima: **${MIN_ROBUX_QUANTITY} Robux** • Preço: **R$ ${pricePerUnit.toFixed(3)}/Robux**`
     )
     .setColor(0x5865f2)
     .addFields(
       {
         name: "💰 Valor Total",
-        value: order.quantity > 0 ? formatBRL(total) : `R$ 0,00`,
+        value: order.quantity > 0 ? `**${formatBRL(total)}**` : "`Defina a quantidade`",
         inline: true,
       },
       {
-        name: `💎 Quantidade de ${productLabel} Taxados`,
-        value: order.quantity > 0 ? `${order.quantity} Robux` : "Não definida",
+        name: "💎 Quantidade",
+        value: order.quantity > 0 ? `**${order.quantity} Robux**` : "`Não definida`",
         inline: true,
       },
       {
-        name: "🏷️ Cupom de Desconto",
-        value: order.couponCode ? `\`${order.couponCode}\`` : "Nenhum cupom aplicado",
+        name: "🏷️ Cupom",
+        value: order.couponCode ? `\`${order.couponCode}\`` : "`Nenhum`",
         inline: true,
       },
       {
-        name: "👤 Usuário",
+        name: "👤 Roblox",
         value: order.robloxUsername
-          ? `${order.robloxDisplayName} (@${order.robloxUsername})`
-          : "Não informado",
+          ? `**${order.robloxDisplayName}** (@${order.robloxUsername})`
+          : "`Não informado`",
         inline: true,
       },
       {
         name: "📊 Status",
-        value: statusLine,
-        inline: false,
-      }
+        value: statusMap[order.status] || "⚪ Desconhecido",
+        inline: true,
+      },
     )
-    .setFooter({ text: `Pedido #${order._id} • Preço: R$ ${pricePerUnit.toFixed(3)}/Robux` })
+    .setFooter({ text: `Pedido #${order._id} • Heaven's Market` })
     .setTimestamp();
-
-  return embed;
 }
 
 // Dropdown com ações do ticket (substitui múltiplos botões)
@@ -383,23 +380,19 @@ function buildTermsEmbed(userId, productType) {
   return new EmbedBuilder()
     .setTitle("✨ Heaven's Market 👋")
     .setDescription(
-      `<@${userId}>, seja bem-vindo(a) ao seu carrinho de compras **Heaven's Market**!\n\n` +
-      `🛒 Olá! Você está no lugar certo.\n\n` +
-      `${emoji} Aqui você pode adquirir **${label}** com segurança, rapidez e praticidade.\n\n` +
-      `📌 *Lembre-se: nossa equipe está sempre pronta para te ajudar em caso de dúvidas.*\n\n` +
-      `**📋 Antes de prosseguir, leia com atenção:**\n\n` +
-      `> 🔶 Ao clicar em **Iniciar Compra**, você concorda com os **termos e diretrizes** da loja.\n` +
+      `> <@${userId}>, seja bem-vindo(a) ao seu carrinho de compras!\n\n` +
+      `${emoji} Você está adquirindo **${label}** com segurança e praticidade.\n\n` +
+      `**📋 Leia com atenção antes de continuar:**\n` +
+      `> 🔶 Ao clicar em **Iniciar Compra** você concorda com os termos da loja.\n` +
       `> 🔶 As informações fornecidas são de **responsabilidade do comprador**.\n` +
       `> 🔶 Nossa equipe atua **apenas pelos canais oficiais** deste servidor.\n\n` +
       `**🔒 Segurança:**\n` +
-      `> ❌ Jamais oferecemos produtos ou suporte por mensagens privadas.\n` +
-      `> ⚠️ Recebeu algo fora do bot ou do servidor? **Ignore — é golpe.**\n\n` +
-      `✅ Clique em **"Iniciar Compra"** para continuar.\n` +
-      `❌ Use **"Cancelar Compra"** a qualquer momento para sair.`
+      `> ❌ Jamais oferecemos suporte por **mensagens privadas**.\n` +
+      `> ⚠️ Recebeu contato externo? **Ignore — é golpe.**`
     )
+    .setColor(0x2b2d31)
     .setThumbnail("https://i.imgur.com/NxqBMbD.png")
-    .setColor(0x5865f2)
-    .setFooter({ text: "Heaven's Market • Compra segura e rápida" })
+    .setFooter({ text: "Heaven's Market • Compra 100% segura" })
     .setTimestamp();
 }
 
@@ -500,7 +493,9 @@ client.once("clientReady", async () => {
   console.log(`Bot online: ${client.user.tag} — prefixo: ${PREFIX}comando`);
   try {
     const rest = new REST({ version: "10" }).setToken(BOT_TOKEN);
+    // Limpa comandos globais antigos
     await rest.put(Routes.applicationCommands(CLIENT_ID), { body: [] });
+    // Registra por servidor (aparece na hora)
     await rest.put(Routes.applicationGuildCommands(CLIENT_ID, "1125234022432383037"), { body: slashCommands });
     console.log("Slash commands registrados no servidor.");
   } catch (err) {
@@ -1672,18 +1667,96 @@ async function sendCartPayment(ctx, order) {
 }
 
 async function handleCatNotFound(interaction, orderId) {
-  const modal = new ModalBuilder().setCustomId(`cat_modal_not_found_${orderId}`).setTitle("Jogo não encontrado");
-  modal.addComponents(new ActionRowBuilder().addComponents(
-    new TextInputBuilder().setCustomId("game_name").setLabel("Qual jogo e produto você procura?").setStyle(TextInputStyle.Paragraph).setPlaceholder("Ex: Anime Adventures — VIP").setRequired(true).setMinLength(5).setMaxLength(500)
-  ));
+  const modal = new ModalBuilder()
+    .setCustomId(`cat_modal_not_found_${orderId}`)
+    .setTitle("🎮 Jogo não encontrado");
+
+  modal.addComponents(
+    new ActionRowBuilder().addComponents(
+      new TextInputBuilder()
+        .setCustomId("game_name")
+        .setLabel("Nome do jogo")
+        .setStyle(TextInputStyle.Short)
+        .setPlaceholder("Ex: Anime Adventures")
+        .setRequired(true)
+        .setMinLength(2)
+        .setMaxLength(100)
+    ),
+    new ActionRowBuilder().addComponents(
+      new TextInputBuilder()
+        .setCustomId("gamepass_name")
+        .setLabel("Nome da Gamepass/Produto")
+        .setStyle(TextInputStyle.Short)
+        .setPlaceholder("Ex: VIP, 2x XP, Dragão Permanente...")
+        .setRequired(true)
+        .setMinLength(2)
+        .setMaxLength(100)
+    ),
+    new ActionRowBuilder().addComponents(
+      new TextInputBuilder()
+        .setCustomId("robux_amount")
+        .setLabel("Quantidade de Robux taxados")
+        .setStyle(TextInputStyle.Short)
+        .setPlaceholder("Ex: 1000")
+        .setRequired(true)
+        .setMinLength(1)
+        .setMaxLength(10)
+    )
+  );
   await interaction.showModal(modal);
 }
 
 async function handleModalCatNotFound(interaction, orderId) {
   await interaction.deferReply({ ephemeral: true });
-  const description = interaction.fields.getTextInputValue("game_name");
-  await Order.findByIdAndUpdate(orderId, { catalogProductName: `[Jogo não listado] ${description}`.slice(0, 200) });
-  await interaction.editReply({ content: "✅ Anotado! Um admin irá verificar e responder em breve neste ticket." });
+
+  const gameName = interaction.fields.getTextInputValue("game_name").trim();
+  const gamepassName = interaction.fields.getTextInputValue("gamepass_name").trim();
+  const robuxRaw = interaction.fields.getTextInputValue("robux_amount").trim();
+  const robuxAmount = parseInt(robuxRaw, 10);
+
+  if (isNaN(robuxAmount) || robuxAmount < 1) {
+    return interaction.editReply({ content: "❌ Quantidade de Robux inválida. Digite apenas números." });
+  }
+
+  const total = robuxAmount * GAMEPASS_PRICE_BRL;
+  const totalFormatted = formatBRL(total);
+  const description = `${gameName} — ${gamepassName} — ${robuxAmount} Robux`;
+
+  await Order.findByIdAndUpdate(orderId, {
+    catalogProductName: description.slice(0, 200),
+    catalogGameName: gameName,
+    quantity: robuxAmount,
+    totalAmount: total,
+  });
+
+  const order = await Order.findById(orderId);
+
+  // Manda resumo no ticket
+  const ticketCh = interaction.guild.channels.cache.get(order?.channelId);
+  if (ticketCh) {
+    const embed = new EmbedBuilder()
+      .setTitle("🎮 Pedido — Jogo Não Listado")
+      .setDescription(`> <@${interaction.user.id}> quer comprar um produto não cadastrado no catálogo.`)
+      .addFields(
+        { name: "🎮 Jogo", value: gameName, inline: true },
+        { name: "🏷️ Produto", value: gamepassName, inline: true },
+        { name: "💎 Quantidade", value: `${robuxAmount} Robux`, inline: true },
+        { name: "💰 Valor Calculado", value: `**${totalFormatted}**`, inline: true },
+      )
+      .setColor(0xfee75c)
+      .setFooter({ text: "Heaven's Market • Aguardando aprovação do admin" })
+      .setTimestamp();
+
+    const closeRow = new ActionRowBuilder().addComponents(
+      new ButtonBuilder().setCustomId(`loja_fechar_${orderId}`).setLabel("✖ Cancelar Ticket").setStyle(ButtonStyle.Danger)
+    );
+
+    await ticketCh.send({ content: `<@${interaction.user.id}>`, embeds: [embed], components: [closeRow] });
+  }
+
+  await interaction.editReply({
+    content: `✅ Pedido registrado!\n\n🎮 **${gameName}** — ${gamepassName}\n💎 ${robuxAmount} Robux → **${totalFormatted}**\n\nUm admin irá verificar e processar seu pedido em breve.`,
+  });
 }
 
 // ========== CODEX PAY API ==========
