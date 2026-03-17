@@ -1322,19 +1322,24 @@ async function showCatalogInTicket(interaction, order) {
   const games = await Catalog.find({ active: true }).sort({ group: 1, name: 1 });
   if (games.length === 0) return interaction.followUp({ content: "❌ Nenhum jogo cadastrado.", ephemeral: true });
 
+  const cartItems = order.cartItems || [];
+  const cartTotal = cartItems.reduce((s, i) => s + i.price, 0);
+
   const embed = new EmbedBuilder()
-    .setTitle("🎮 Selecione um Jogo")
+    .setTitle("🛒 Heaven's Market — Catálogo In-Game")
     .setDescription(
-      `> 📦 **${games.length} jogos** disponíveis\n` +
-      `> ❓ Não achou seu jogo? Clique em **"Não estou vendo meu jogo"**.`
+      `Selecione um jogo no menu abaixo para ver os produtos disponíveis.\n\n` +
+      `📦 **${games.length} jogos** no catálogo\n` +
+      `🛒 **Carrinho:** ${cartItems.length} item(s) — **${formatBRL(cartTotal)}**\n\n` +
+      `> Não encontrou seu jogo? Clique em **"Não estou vendo meu jogo"**.`
     )
-    .setColor(0x5865f2)
+    .setColor(0x2b2d31)
     .setFooter({ text: "Heaven's Market • Catálogo In-Game" });
 
   const gameRow = new ActionRowBuilder().addComponents(
     new StringSelectMenuBuilder()
       .setCustomId(`cat_game_${order._id}`)
-      .setPlaceholder("☀️ Escolha um jogo...")
+      .setPlaceholder("🎮 Escolha um jogo...")
       .addOptions(games.slice(0, 25).map((g) => ({
         label: `${g.emoji} ${g.name}`.slice(0, 100),
         value: String(g._id),
@@ -1344,8 +1349,8 @@ async function showCatalogInTicket(interaction, order) {
 
   const actionsRow = new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId(`cat_not_found_${order._id}`).setLabel("❓ Não estou vendo meu jogo").setStyle(ButtonStyle.Secondary),
-    new ButtonBuilder().setCustomId(`cat_view_cart_${order._id}`).setLabel("🛒 Ver Carrinho").setStyle(ButtonStyle.Primary),
-    new ButtonBuilder().setCustomId(`loja_fechar_${order._id}`).setLabel("✖ Fechar Carrinho").setStyle(ButtonStyle.Danger)
+    new ButtonBuilder().setCustomId(`cat_view_cart_${order._id}`).setLabel(`🛒 Carrinho (${cartItems.length})`).setStyle(ButtonStyle.Primary),
+    new ButtonBuilder().setCustomId(`loja_fechar_${order._id}`).setLabel("✖ Cancelar").setStyle(ButtonStyle.Danger)
   );
 
   if (order.ticketMessageId) {
@@ -1365,21 +1370,32 @@ async function handleCatGame(interaction, orderId, gameId) {
 
   if (game.categories.length === 1) return showCatProducts(interaction, order, game, 0);
 
-  const embed = new EmbedBuilder().setTitle(`${game.emoji} ${game.name}`).setDescription("Selecione uma categoria:").setColor(0x5865f2);
+  const cartItems = order.cartItems || [];
+  const cartTotal = cartItems.reduce((s, i) => s + i.price, 0);
+
+  const embed = new EmbedBuilder()
+    .setTitle(`${game.emoji} ${game.name}`)
+    .setDescription(
+      `Selecione uma **categoria** de produto:\n\n` +
+      `🛒 Carrinho: **${cartItems.length} item(s)** — **${formatBRL(cartTotal)}**`
+    )
+    .setColor(0x2b2d31)
+    .setFooter({ text: `Heaven's Market • ${game.group}` });
 
   const catRow = new ActionRowBuilder().addComponents(
     new StringSelectMenuBuilder()
       .setCustomId(`cat_category_${orderId}_${gameId}`)
       .setPlaceholder("📂 Selecione uma categoria...")
       .addOptions(game.categories.map((cat, i) => ({
-        label: cat.name, value: String(i), description: `${cat.products.length} produto(s)`,
+        label: cat.name, value: String(i),
+        description: `${cat.products.length} produto(s) disponíveis`,
       })))
   );
 
   const backRow = new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId(`cat_back_games_${orderId}`).setLabel("⬅️ Voltar aos Jogos").setStyle(ButtonStyle.Secondary),
-    new ButtonBuilder().setCustomId(`cat_view_cart_${orderId}`).setLabel("🛒 Ver Carrinho").setStyle(ButtonStyle.Primary),
-    new ButtonBuilder().setCustomId(`loja_fechar_${orderId}`).setLabel("✖ Fechar").setStyle(ButtonStyle.Danger)
+    new ButtonBuilder().setCustomId(`cat_back_games_${orderId}`).setLabel("⬅️ Jogos").setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder().setCustomId(`cat_view_cart_${orderId}`).setLabel(`🛒 Carrinho (${cartItems.length})`).setStyle(ButtonStyle.Primary),
+    new ButtonBuilder().setCustomId(`loja_fechar_${orderId}`).setLabel("✖ Cancelar").setStyle(ButtonStyle.Danger)
   );
 
   await interaction.editReply({ embeds: [embed], components: [catRow, backRow] });
@@ -1396,10 +1412,17 @@ async function showCatProducts(interaction, order, game, categoryIndex) {
   const category = game.categories[categoryIndex];
   if (!category) return interaction.followUp({ content: "❌ Categoria não encontrada.", ephemeral: true });
 
+  const cartItems = order.cartItems || [];
+  const cartTotal = cartItems.reduce((s, i) => s + i.price, 0);
+
   const embed = new EmbedBuilder()
     .setTitle(`${game.emoji} ${game.name} — ${category.name}`)
-    .setDescription("Selecione o produto para adicionar ao carrinho:")
-    .setColor(0x5865f2);
+    .setDescription(
+      `Selecione o **produto** para adicionar ao carrinho:\n\n` +
+      `🛒 Carrinho: **${cartItems.length} item(s)** — **${formatBRL(cartTotal)}**`
+    )
+    .setColor(0x2b2d31)
+    .setFooter({ text: `Heaven's Market • ${category.products.length} produtos disponíveis` });
 
   const prodRow = new ActionRowBuilder().addComponents(
     new StringSelectMenuBuilder()
@@ -1407,14 +1430,14 @@ async function showCatProducts(interaction, order, game, categoryIndex) {
       .setPlaceholder("🛍️ Selecione um produto...")
       .addOptions(category.products.slice(0, 25).map((p, i) => ({
         label: p.name.slice(0, 100), value: String(i),
-        description: `R$ ${p.price.toFixed(2).replace(".", ",")}`,
+        description: `💰 R$ ${p.price.toFixed(2).replace(".", ",")}`,
       })))
   );
 
   const backRow = new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId(`cat_back_game_${order._id}_${game._id}`).setLabel("⬅️ Voltar").setStyle(ButtonStyle.Secondary),
-    new ButtonBuilder().setCustomId(`cat_view_cart_${order._id}`).setLabel("🛒 Ver Carrinho").setStyle(ButtonStyle.Primary),
-    new ButtonBuilder().setCustomId(`loja_fechar_${order._id}`).setLabel("✖ Fechar").setStyle(ButtonStyle.Danger)
+    new ButtonBuilder().setCustomId(`cat_back_game_${order._id}_${game._id}`).setLabel("⬅️ Categorias").setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder().setCustomId(`cat_view_cart_${order._id}`).setLabel(`🛒 Carrinho (${cartItems.length})`).setStyle(ButtonStyle.Primary),
+    new ButtonBuilder().setCustomId(`loja_fechar_${order._id}`).setLabel("✖ Cancelar").setStyle(ButtonStyle.Danger)
   );
 
   await interaction.editReply({ embeds: [embed], components: [prodRow, backRow] });
@@ -1435,21 +1458,24 @@ async function handleCatProduct(interaction, orderId, gameId, categoryIndex, pro
 
   const updatedOrder = await Order.findById(orderId);
   const total = (updatedOrder.cartItems || []).reduce((s, i) => s + i.price, 0);
+  const count = updatedOrder.cartItems.length;
 
   const embed = new EmbedBuilder()
-    .setTitle("✅ Adicionado ao Carrinho!")
+    .setTitle("✅ Produto Adicionado!")
     .setDescription(
-      `**${game.emoji} ${product.name}** adicionado!\n\n` +
-      `💰 Preço: R$ ${product.price.toFixed(2).replace(".", ",")}\n` +
-      `🛒 Total atual: **R$ ${total.toFixed(2).replace(".", ",")}** (${updatedOrder.cartItems.length} item(s))`
+      `**${game.emoji} ${product.name}** foi adicionado ao seu carrinho.\n\n` +
+      `> 💰 Preço unitário: **R$ ${product.price.toFixed(2).replace(".", ",")}**\n` +
+      `> 🛒 Total do carrinho: **${formatBRL(total)}** (${count} item${count > 1 ? "s" : ""})\n\n` +
+      `Deseja continuar comprando ou finalizar?`
     )
-    .setColor(0x57f287);
+    .setColor(0x57f287)
+    .setFooter({ text: "Heaven's Market • Item adicionado com sucesso" });
 
   const actionsRow = new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId(`cat_back_games_${orderId}`).setLabel("🛍️ Continuar Comprando").setStyle(ButtonStyle.Primary),
-    new ButtonBuilder().setCustomId(`cat_view_cart_${orderId}`).setLabel("🛒 Ver Carrinho").setStyle(ButtonStyle.Secondary),
-    new ButtonBuilder().setCustomId(`cat_checkout_${orderId}`).setLabel("💳 Ir para o Pagamento").setStyle(ButtonStyle.Success),
-    new ButtonBuilder().setCustomId(`loja_fechar_${orderId}`).setLabel("✖ Fechar").setStyle(ButtonStyle.Danger)
+    new ButtonBuilder().setCustomId(`cat_view_cart_${orderId}`).setLabel(`🛒 Carrinho (${count})`).setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder().setCustomId(`cat_checkout_${orderId}`).setLabel("💳 Finalizar Compra").setStyle(ButtonStyle.Success),
+    new ButtonBuilder().setCustomId(`loja_fechar_${orderId}`).setLabel("✖").setStyle(ButtonStyle.Danger)
   );
 
   await interaction.editReply({ embeds: [embed], components: [actionsRow] });
@@ -1463,7 +1489,11 @@ async function handleCatViewCart(interaction, orderId) {
   const items = order.cartItems || [];
   if (items.length === 0) {
     return interaction.editReply({
-      embeds: [new EmbedBuilder().setTitle("🛒 Carrinho Vazio").setDescription("Adicione produtos para continuar.").setColor(0xfee75c)],
+      embeds: [new EmbedBuilder()
+        .setTitle("🛒 Carrinho Vazio")
+        .setDescription("Seu carrinho está vazio. Selecione produtos para continuar.")
+        .setColor(0x2b2d31)
+        .setFooter({ text: "Heaven's Market" })],
       components: [new ActionRowBuilder().addComponents(
         new ButtonBuilder().setCustomId(`cat_back_games_${orderId}`).setLabel("🛍️ Continuar Comprando").setStyle(ButtonStyle.Primary),
         new ButtonBuilder().setCustomId(`loja_fechar_${orderId}`).setLabel("✖ Fechar").setStyle(ButtonStyle.Danger)
@@ -1480,21 +1510,26 @@ async function handleCatViewCart(interaction, orderId) {
   let cartText = "";
   for (const [name, data] of Object.entries(grouped)) {
     cartText += `${data.emoji} **${name}**\n`;
-    for (const item of data.items) cartText += `> • ${item.productName} — R$ ${item.price.toFixed(2).replace(".", ",")}\n`;
+    for (const item of data.items) cartText += `> ╰ ${item.productName} — **R$ ${item.price.toFixed(2).replace(".", ",")}**\n`;
     cartText += "\n";
   }
+  if (order.couponCode) cartText += `🏷️ Cupom: \`${order.couponCode}\`\n`;
 
   const embed = new EmbedBuilder()
-    .setTitle("🛒 Seu Carrinho")
+    .setTitle("🛒 Seu Carrinho — Heaven's Market")
     .setDescription(cartText.trim())
-    .addFields({ name: "💰 Valor Total", value: `**R$ ${total.toFixed(2).replace(".", ",")}**`, inline: false })
-    .setColor(0x5865f2)
-    .setFooter({ text: `${items.length} item(s)` });
+    .addFields(
+      { name: "📦 Itens", value: `${items.length} produto${items.length > 1 ? "s" : ""}`, inline: true },
+      { name: "💰 Total", value: `**${formatBRL(total)}**`, inline: true },
+    )
+    .setColor(0x2b2d31)
+    .setFooter({ text: "Heaven's Market • Revise seu pedido antes de pagar" })
+    .setTimestamp();
 
   const removeRow = new ActionRowBuilder().addComponents(
     new StringSelectMenuBuilder()
       .setCustomId(`cat_remove_${orderId}`)
-      .setPlaceholder("🗑️ Remover item do carrinho...")
+      .setPlaceholder("🗑️ Selecionar item para remover...")
       .addOptions(items.slice(0, 25).map((item, i) => ({
         label: `${item.gameName} — ${item.productName}`.slice(0, 100),
         value: String(i),
@@ -1503,10 +1538,10 @@ async function handleCatViewCart(interaction, orderId) {
   );
 
   const actionsRow = new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId(`cat_back_games_${orderId}`).setLabel("🛍️ Continuar Comprando").setStyle(ButtonStyle.Primary),
-    new ButtonBuilder().setCustomId(`cat_coupon_${orderId}`).setLabel("🏷️ Adicionar Cupom").setStyle(ButtonStyle.Secondary),
-    new ButtonBuilder().setCustomId(`cat_checkout_${orderId}`).setLabel("💳 Ir para o Pagamento").setStyle(ButtonStyle.Success),
-    new ButtonBuilder().setCustomId(`cat_clear_${orderId}`).setLabel("🗑️ Esvaziar Carrinho").setStyle(ButtonStyle.Danger)
+    new ButtonBuilder().setCustomId(`cat_back_games_${orderId}`).setLabel("🛍️ Continuar").setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder().setCustomId(`cat_coupon_${orderId}`).setLabel("🏷️ Cupom").setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder().setCustomId(`cat_checkout_${orderId}`).setLabel("💳 Finalizar Compra").setStyle(ButtonStyle.Success),
+    new ButtonBuilder().setCustomId(`cat_clear_${orderId}`).setLabel("🗑️ Esvaziar").setStyle(ButtonStyle.Danger)
   );
 
   await interaction.editReply({ embeds: [embed], components: [removeRow, actionsRow] });
@@ -1712,50 +1747,42 @@ async function handleModalCatNotFound(interaction, orderId) {
   const gameName = interaction.fields.getTextInputValue("game_name").trim();
   const gamepassName = interaction.fields.getTextInputValue("gamepass_name").trim();
   const robuxRaw = interaction.fields.getTextInputValue("robux_amount").trim();
-  const robuxAmount = parseInt(robuxRaw, 10);
+  const robuxAmount = parseInt(robuxRaw.replace(/\D/g, ""), 10);
 
   if (isNaN(robuxAmount) || robuxAmount < 1) {
-    return interaction.editReply({ content: "❌ Quantidade de Robux inválida. Digite apenas números." });
+    return interaction.editReply({ content: "❌ Quantidade de Robux inválida. Digite apenas números. Ex: 1000" });
   }
 
-  const total = robuxAmount * GAMEPASS_PRICE_BRL;
-  const totalFormatted = formatBRL(total);
-  const description = `${gameName} — ${gamepassName} — ${robuxAmount} Robux`;
+  const price = robuxAmount * GAMEPASS_PRICE_BRL;
 
+  // Adiciona direto ao carrinho como item normal
   await Order.findByIdAndUpdate(orderId, {
-    catalogProductName: description.slice(0, 200),
-    catalogGameName: gameName,
-    quantity: robuxAmount,
-    totalAmount: total,
+    $push: {
+      cartItems: {
+        gameName: gameName,
+        gameEmoji: "🎮",
+        categoryName: "Gamepass",
+        productName: gamepassName,
+        price,
+        quantity: 1,
+      },
+    },
   });
 
-  const order = await Order.findById(orderId);
-
-  // Manda resumo no ticket
-  const ticketCh = interaction.guild.channels.cache.get(order?.channelId);
-  if (ticketCh) {
-    const embed = new EmbedBuilder()
-      .setTitle("🎮 Pedido — Jogo Não Listado")
-      .setDescription(`> <@${interaction.user.id}> quer comprar um produto não cadastrado no catálogo.`)
-      .addFields(
-        { name: "🎮 Jogo", value: gameName, inline: true },
-        { name: "🏷️ Produto", value: gamepassName, inline: true },
-        { name: "💎 Quantidade", value: `${robuxAmount} Robux`, inline: true },
-        { name: "💰 Valor Calculado", value: `**${totalFormatted}**`, inline: true },
-      )
-      .setColor(0xfee75c)
-      .setFooter({ text: "Heaven's Market • Aguardando aprovação do admin" })
-      .setTimestamp();
-
-    const closeRow = new ActionRowBuilder().addComponents(
-      new ButtonBuilder().setCustomId(`loja_fechar_${orderId}`).setLabel("✖ Cancelar Ticket").setStyle(ButtonStyle.Danger)
-    );
-
-    await ticketCh.send({ content: `<@${interaction.user.id}>`, embeds: [embed], components: [closeRow] });
-  }
+  const updatedOrder = await Order.findById(orderId);
+  const total = (updatedOrder.cartItems || []).reduce((s, i) => s + i.price, 0);
+  const count = updatedOrder.cartItems.length;
 
   await interaction.editReply({
-    content: `✅ Pedido registrado!\n\n🎮 **${gameName}** — ${gamepassName}\n💎 ${robuxAmount} Robux → **${totalFormatted}**\n\nUm admin irá verificar e processar seu pedido em breve.`,
+    content:
+      `✅ **${gameName} — ${gamepassName}** adicionado ao carrinho!\n\n` +
+      `> 💎 ${robuxAmount} Robux → **${formatBRL(price)}**\n` +
+      `> 🛒 Total: **${formatBRL(total)}** (${count} item${count > 1 ? "s" : ""})\n\n` +
+      `Use o botão **"🛒 Carrinho"** para finalizar ou continuar comprando.`,
+    components: [new ActionRowBuilder().addComponents(
+      new ButtonBuilder().setCustomId(`cat_view_cart_${orderId}`).setLabel(`🛒 Ver Carrinho (${count})`).setStyle(ButtonStyle.Primary),
+      new ButtonBuilder().setCustomId(`cat_checkout_${orderId}`).setLabel("💳 Finalizar Compra").setStyle(ButtonStyle.Success),
+    )],
   });
 }
 
