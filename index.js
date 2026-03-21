@@ -46,6 +46,9 @@ const CH_ENTREGAS   = process.env.CH_ENTREGAS   || "1395903375664480337"; // ent
 const CH_REFS       = process.env.CH_REFS       || "1395903376998400153"; // refs/avaliações
 const CH_LOGS       = process.env.CH_LOGS       || "1395903311798075463"; // logs admins
 
+// Estado da loja
+let lojaAberta = true;
+
 // Codex Pay
 const CODEX_EMAIL = process.env.CODEX_EMAIL || "";
 const CODEX_SENHA = process.env.CODEX_SENHA || "";
@@ -62,6 +65,7 @@ const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.GuildMembers,
     GatewayIntentBits.MessageContent,
   ],
 });
@@ -373,6 +377,15 @@ async function buildPermissionOverwrites(guild, userId) {
   return overwrites;
 }
 
+// Trava o canal para o cliente não mandar mensagem (só leitura)
+async function lockChannelForUser(guild, channel, userId) {
+  try {
+    await channel.permissionOverwrites.edit(userId, {
+      SendMessages: false,
+    });
+  } catch { /* ignora */ }
+}
+
 function buildTermsEmbed(userId, productType) {
   const isGamepass = productType === "gamepass";
   const emoji = isGamepass ? "🎮" : "💎";
@@ -400,6 +413,14 @@ async function createTicket(interaction, productType, userId) {
   const categoryChannel = interaction.guild.channels.cache.get(SHOP_CATEGORY_ID);
   if (!categoryChannel) {
     await interaction.editReply({ content: "❌ Categoria de tickets não encontrada. Contate um admin." });
+    return null;
+  }
+
+  // Anti-spam
+  if (checkTicketSpam(userId)) {
+    await interaction.editReply({
+      content: "⚠️ Você está abrindo tickets muito rápido. Aguarde alguns minutos antes de tentar novamente.",
+    });
     return null;
   }
 
@@ -448,6 +469,8 @@ async function createTicket(interaction, productType, userId) {
     });
 
     await Order.findByIdAndUpdate(order._id, { channelId: channel.id, ticketMessageId: ticketMsg.id });
+    // Inicia timer de inatividade
+    resetInactivityTimer(channel, order._id);
     return channel;
   } catch (err) {
     console.error("[shop] Erro ao criar ticket:", err);
@@ -461,6 +484,28 @@ const slashCommands = [
   new SlashCommandBuilder()
     .setName("loja")
     .setDescription("Abre a loja de Robux e Gamepass"),
+  new SlashCommandBuilder()
+    .setName("calcular")
+    .setDescription("Calcula o valor de Robux taxado e Gamepass")
+    .addIntegerOption(opt =>
+      opt.setName("robux")
+        .setDescription("Quantidade de Robux desejada")
+        .setRequired(true)
+        .setMinValue(1)
+    ),
+  new SlashCommandBuilder()
+    .setName("gastos")
+    .setDescription("Mostra o total gasto de um usuário na loja")
+    .addUserOption(opt =>
+      opt.setName("usuario")
+        .setDescription("Usuário para consultar (deixe vazio para ver o seu)")
+        .setRequired(false)
+    ),
+  new SlashCommandBuilder()
+    .setName("aprovar")
+    .setDescription("Aprova manualmente um pedido como pago (apenas admins)")
+    .addUserOption(opt => opt.setName("usuario").setDescription("Usuário dono do pedido").setRequired(true))
+    .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator.toString()),
   new SlashCommandBuilder()
     .setName("gerarpix")
     .setDescription("Gera um PIX avulso pela Codex Pay")
@@ -479,8 +524,126 @@ const slashCommands = [
     .addAttachmentOption(opt => opt.setName("imagem").setDescription("Comprovante/print (opcional)").setRequired(false))
     .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator.toString()),
   new SlashCommandBuilder()
+    .setName("status")
+    .setDescription("Abre ou fecha a loja")
+    .addStringOption(opt =>
+      opt.setName("acao")
+        .setDescription("Abrir ou fechar a loja")
+        .setRequired(true)
+        .addChoices(
+          { name: "🟢 Abrir", value: "abrir" },
+          { name: "🔴 Fechar", value: "fechar" },
+        )
+    )
+    .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator.toString()),
+  new SlashCommandBuilder()
+    .setName("ticket")
+    .setDescription("Gerencia o ticket atual")
+    .addSubcommand(sub =>
+      sub.setName("fechar")
+        .setDescription("Fecha o ticket atual")
+    )
+    .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator.toString()),
+  new SlashCommandBuilder()
     .setName("solicitar_avaliacao")
     .setDescription("Envia o embed de avaliação no canal atual")
+    .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator.toString()),
+  new SlashCommandBuilder()
+    .setName("cupom")
+    .setDescription("Gerencia cupons de desconto")
+    .addSubcommand(sub => sub.setName("criar")
+      .setDescription("Cria um cupom de desconto")
+      .addStringOption(opt => opt.setName("codigo").setDescription("Código do cupom (ex: PROMO10)").setRequired(true))
+      .addNumberOption(opt => opt.setName("desconto").setDescription("Valor do desconto em reais (ex: 5.00)").setRequired(true).setMinValue(0.01))
+      .addIntegerOption(opt => opt.setName("usos").setDescription("Máximo de usos (0 = ilimitado)").setRequired(false))
+    )
+    .addSubcommand(sub => sub.setName("deletar")
+      .setDescription("Deleta um cupom")
+      .addStringOption(opt => opt.setName("codigo").setDescription("Código do cupom").setRequired(true))
+    )
+    .addSubcommand(sub => sub.setName("listar").setDescription("Lista todos os cupons ativos"))
+    .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator.toString()),
+  new SlashCommandBuilder()
+    .setName("perfil")
+    .setDescription("Mostra o perfil e histórico de compras de um usuário")
+    .addUserOption(opt => opt.setName("usuario").setDescription("Usuário (deixe vazio para ver o seu)").setRequired(false)),
+  new SlashCommandBuilder()
+    .setName("jogo")
+    .setDescription("Gerencia jogos do catálogo")
+    .addSubcommand(sub => sub.setName("adicionar")
+      .setDescription("Adiciona um jogo ao catálogo")
+      .addStringOption(opt => opt.setName("nome").setDescription("Nome do jogo").setRequired(true))
+      .addStringOption(opt => opt.setName("emoji").setDescription("Emoji do jogo").setRequired(true))
+      .addStringOption(opt => opt.setName("grupo").setDescription("Grupo (ex: Anime & Luta)").setRequired(true))
+    )
+    .addSubcommand(sub => sub.setName("remover")
+      .setDescription("Remove um jogo do catálogo")
+      .addStringOption(opt => opt.setName("nome").setDescription("Nome exato do jogo").setRequired(true))
+    )
+    .addSubcommand(sub => sub.setName("listar").setDescription("Lista todos os jogos do catálogo"))
+    .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator.toString()),
+  new SlashCommandBuilder()
+    .setName("produto")
+    .setDescription("Gerencia produtos de um jogo")
+    .addSubcommand(sub => sub.setName("adicionar")
+      .setDescription("Adiciona um produto a um jogo")
+      .addStringOption(opt => opt.setName("jogo").setDescription("Nome do jogo").setRequired(true))
+      .addStringOption(opt => opt.setName("categoria").setDescription("Categoria (ex: Gamepass, Frutas)").setRequired(true))
+      .addStringOption(opt => opt.setName("nome").setDescription("Nome do produto").setRequired(true))
+      .addNumberOption(opt => opt.setName("preco").setDescription("Preço em reais").setRequired(true).setMinValue(0.01))
+    )
+    .addSubcommand(sub => sub.setName("remover")
+      .setDescription("Remove um produto de um jogo")
+      .addStringOption(opt => opt.setName("jogo").setDescription("Nome do jogo").setRequired(true))
+      .addStringOption(opt => opt.setName("nome").setDescription("Nome do produto").setRequired(true))
+    )
+    .addSubcommand(sub => sub.setName("editar")
+      .setDescription("Edita o preço de um produto existente")
+      .addStringOption(opt => opt.setName("jogo").setDescription("Nome do jogo").setRequired(true))
+      .addStringOption(opt => opt.setName("nome").setDescription("Nome do produto").setRequired(true))
+      .addNumberOption(opt => opt.setName("preco").setDescription("Novo preço em reais").setRequired(true).setMinValue(0.01))
+    )
+    .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator.toString()),
+  new SlashCommandBuilder()
+    .setName("desconto")
+    .setDescription("Aplica desconto direto em um pedido aberto")
+    .addUserOption(opt => opt.setName("usuario").setDescription("Usuário dono do pedido").setRequired(true))
+    .addNumberOption(opt => opt.setName("valor").setDescription("Valor do desconto em reais").setRequired(true).setMinValue(0.01))
+    .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator.toString()),
+  new SlashCommandBuilder()
+    .setName("alterar-nick")
+    .setDescription("Altera o nick Roblox de um pedido de gamepass")
+    .addUserOption(opt => opt.setName("usuario").setDescription("Usuário dono do pedido").setRequired(true))
+    .addStringOption(opt => opt.setName("nick").setDescription("Novo nick do Roblox").setRequired(true))
+    .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator.toString()),
+  new SlashCommandBuilder()
+    .setName("reabrir")
+    .setDescription("Reabre um ticket cancelado")
+    .addUserOption(opt => opt.setName("usuario").setDescription("Usuário dono do pedido").setRequired(true))
+    .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator.toString()),
+  new SlashCommandBuilder()
+    .setName("ping")
+    .setDescription("Mostra a latência do bot e status da conexão"),
+  new SlashCommandBuilder()
+    .setName("ranking")
+    .setDescription("Mostra o ranking dos maiores compradores do servidor"),
+  new SlashCommandBuilder()
+    .setName("historico")
+    .setDescription("Mostra o histórico de pedidos de um usuário")
+    .addUserOption(opt => opt.setName("usuario").setDescription("Usuário (vazio = você mesmo)").setRequired(false)),
+  new SlashCommandBuilder()
+    .setName("buscar")
+    .setDescription("Busca um produto no catálogo")
+    .addStringOption(opt => opt.setName("produto").setDescription("Nome do produto a buscar").setRequired(true)),
+  new SlashCommandBuilder()
+    .setName("cancelar")
+    .setDescription("Cancela um pedido com motivo")
+    .addUserOption(opt => opt.setName("usuario").setDescription("Usuário dono do pedido").setRequired(true))
+    .addStringOption(opt => opt.setName("motivo").setDescription("Motivo do cancelamento").setRequired(true))
+    .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator.toString()),
+  new SlashCommandBuilder()
+    .setName("stats")
+    .setDescription("Estatísticas da loja")
     .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator.toString()),
   new SlashCommandBuilder()
     .setName("pedidos-pendentes")
@@ -506,6 +669,13 @@ client.once("clientReady", async () => {
 // ========== PREFIXO ==========
 client.on("messageCreate", async (message) => {
   if (message.author.bot) return;
+
+  // Reset timer de inatividade se canal é um ticket ativo
+  if (inactivityTimers.has(message.channelId)) {
+    const order = await Order.findOne({ channelId: message.channelId, status: { $nin: ["delivered", "cancelled"] } }).catch(() => null);
+    if (order) resetInactivityTimer(message.channel, order._id);
+  }
+
   if (!message.content.startsWith(PREFIX)) return;
 
   const command = message.content.slice(PREFIX.length).trim().toLowerCase();
@@ -658,6 +828,16 @@ async function handleLojaCommand(interaction) {
 
 // Botão: Comprar Robux / Comprar Gamepass
 async function handleLojaProduto(interaction, productType) {
+  if (!lojaAberta) {
+    return interaction.reply({
+      ephemeral: true,
+      embeds: [new EmbedBuilder()
+        .setTitle("🔴 Loja Fechada")
+        .setDescription("A loja está temporariamente fechada.\nVolte mais tarde ou aguarde um aviso no servidor.")
+        .setColor(0xed4245)
+        .setFooter({ text: "Heaven's Market" })],
+    });
+  }
   await interaction.deferReply({ ephemeral: true });
 
   const userId = interaction.user.id;
@@ -1016,14 +1196,15 @@ async function handleModalCupom(interaction, orderId) {
   await interaction.deferReply({ ephemeral: true });
 
   const cupom = interaction.fields.getTextInputValue("cupom").trim().toUpperCase();
-  const order = await Order.findByIdAndUpdate(orderId, { couponCode: cupom }, { new: true });
+  const { valid, desconto } = applyCoupon(cupom);
 
-  if (!order) return interaction.editReply({ content: "❌ Pedido não encontrado." });
-
-  await updateTicketEmbed(interaction.guild, orderId);
-  await interaction.editReply({
-    content: `✅ Cupom **${cupom}** registrado! *(Desconto será validado por um admin.)*`,
-  });
+  if (valid) {
+    await Order.findByIdAndUpdate(orderId, { couponCode: cupom, discountAmount: desconto }, { new: true });
+    await updateTicketEmbed(interaction.guild, orderId);
+    await interaction.editReply({ content: `✅ Cupom **${cupom}** aplicado! Desconto de **${formatBRL(desconto)}**.` });
+  } else {
+    await interaction.editReply({ content: `❌ Cupom **${cupom}** inválido ou esgotado.` });
+  }
 }
 
 // Botão: Ir para pagamento
@@ -1096,6 +1277,9 @@ async function handleTicketPagar(interaction, orderId) {
       .setTimestamp();
 
     await interaction.channel.send({ embeds: [embed], files: [attachment] });
+
+    // Fecha canal para o cliente (só leitura enquanto aguarda pagamento)
+    await lockChannelForUser(interaction.guild, interaction.channel, order.userId);
 
     // Inicia polling automático
     startPaymentPolling(client, interaction.guild, updatedOrder, codexData.id);
@@ -1204,6 +1388,24 @@ client.on("interactionCreate", async (interaction) => {
     // Slash commands
     if (interaction.isChatInputCommand()) {
       if (interaction.commandName === "loja") return handleLojaCommand(interaction);
+      if (interaction.commandName === "calcular") return handleCalcularCommand(interaction);
+      if (interaction.commandName === "gastos") return handleGastosCommand(interaction);
+      if (interaction.commandName === "aprovar") return handleAprovarCommand(interaction);
+      if (interaction.commandName === "ticket") return handleTicketCommand(interaction);
+      if (interaction.commandName === "status") return handleStatusCommand(interaction);
+      if (interaction.commandName === "cupom") return handleCupomCommand(interaction);
+      if (interaction.commandName === "perfil") return handlePerfilCommand(interaction);
+      if (interaction.commandName === "ranking") return handleRankingCommand(interaction);
+      if (interaction.commandName === "ping") return handlePingCommand(interaction);
+      if (interaction.commandName === "historico") return handleHistoricoCommand(interaction);
+      if (interaction.commandName === "buscar") return handleBuscarCommand(interaction);
+      if (interaction.commandName === "cancelar") return handleCancelarCommand(interaction);
+      if (interaction.commandName === "stats") return handleStatsCommand(interaction);
+      if (interaction.commandName === "desconto") return handleDescontoCommand(interaction);
+      if (interaction.commandName === "alterar-nick") return handleAlterarNickCommand(interaction);
+      if (interaction.commandName === "reabrir") return handleReabrirCommand(interaction);
+      if (interaction.commandName === "jogo") return handleJogoCommand(interaction);
+      if (interaction.commandName === "produto") return handleProdutoCommand(interaction);
       if (interaction.commandName === "gerarpix") return handleGerarPixCommand(interaction);
       if (interaction.commandName === "entregar") return handleEntregarCommand(interaction);
       if (interaction.commandName === "solicitar_avaliacao") return handleSolicitarAvaliacaoCommand(interaction);
@@ -1325,10 +1527,18 @@ async function showCatalogInTicket(interaction, order) {
   const cartItems = order.cartItems || [];
   const cartTotal = cartItems.reduce((s, i) => s + i.price, 0);
 
+  // Agrupa por grupo
+  const grouped = {};
+  for (const g of games) {
+    if (!grouped[g.group]) grouped[g.group] = [];
+    grouped[g.group].push(g);
+  }
+  const groups = Object.entries(grouped);
+
   const embed = new EmbedBuilder()
     .setTitle("🛒 Heaven's Market — Catálogo In-Game")
     .setDescription(
-      `Selecione um jogo no menu abaixo para ver os produtos disponíveis.\n\n` +
+      `Selecione um jogo em uma das categorias abaixo.\n\n` +
       `📦 **${games.length} jogos** no catálogo\n` +
       `🛒 **Carrinho:** ${cartItems.length} item(s) — **${formatBRL(cartTotal)}**\n\n` +
       `> Não encontrou seu jogo? Clique em **"Não estou vendo meu jogo"**.`
@@ -1336,31 +1546,34 @@ async function showCatalogInTicket(interaction, order) {
     .setColor(0x2b2d31)
     .setFooter({ text: "Heaven's Market • Catálogo In-Game" });
 
-  const gameRow = new ActionRowBuilder().addComponents(
-    new StringSelectMenuBuilder()
-      .setCustomId(`cat_game_${order._id}`)
-      .setPlaceholder("🎮 Escolha um jogo...")
-      .addOptions(games.slice(0, 25).map((g) => ({
-        label: `${g.emoji} ${g.name}`.slice(0, 100),
-        value: String(g._id),
-        description: g.group,
-      })))
+  // Um select menu por grupo (máx 5 rows = 4 menus + 1 botões)
+  const components = groups.slice(0, 4).map(([groupName, groupGames]) =>
+    new ActionRowBuilder().addComponents(
+      new StringSelectMenuBuilder()
+        .setCustomId(`cat_game_${order._id}`)
+        .setPlaceholder(`${groupName}`)
+        .addOptions(groupGames.slice(0, 25).map((g) => ({
+          label: `${g.emoji} ${g.name}`.slice(0, 100),
+          value: String(g._id),
+          description: `${g.categories.reduce((s, c) => s + c.products.length, 0)} produtos`,
+        })))
+    )
   );
 
-  const actionsRow = new ActionRowBuilder().addComponents(
+  components.push(new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId(`cat_not_found_${order._id}`).setLabel("❓ Não estou vendo meu jogo").setStyle(ButtonStyle.Secondary),
     new ButtonBuilder().setCustomId(`cat_view_cart_${order._id}`).setLabel(`🛒 Carrinho (${cartItems.length})`).setStyle(ButtonStyle.Primary),
     new ButtonBuilder().setCustomId(`loja_fechar_${order._id}`).setLabel("✖ Cancelar").setStyle(ButtonStyle.Danger)
-  );
+  ));
 
   if (order.ticketMessageId) {
     try {
       const ch = interaction.guild.channels.cache.get(order.channelId);
       const msg = ch ? await ch.messages.fetch(order.ticketMessageId).catch(() => null) : null;
-      if (msg) { await msg.edit({ embeds: [embed], components: [gameRow, actionsRow] }); return; }
+      if (msg) { await msg.edit({ embeds: [embed], components }); return; }
     } catch { /* ignora */ }
   }
-  await interaction.followUp({ embeds: [embed], components: [gameRow, actionsRow] });
+  await interaction.followUp({ embeds: [embed], components });
 }
 
 async function handleCatGame(interaction, orderId, gameId) {
@@ -1575,8 +1788,14 @@ async function handleCatCoupon(interaction, orderId) {
 async function handleModalCatCoupon(interaction, orderId) {
   await interaction.deferReply({ ephemeral: true });
   const cupom = interaction.fields.getTextInputValue("cupom").trim().toUpperCase();
-  await Order.findByIdAndUpdate(orderId, { couponCode: cupom });
-  await interaction.editReply({ content: `✅ Cupom **${cupom}** registrado! Desconto será validado por um admin.` });
+
+  const { valid, desconto } = applyCoupon(cupom);
+  if (valid) {
+    await Order.findByIdAndUpdate(orderId, { couponCode: cupom, discountAmount: desconto });
+    await interaction.editReply({ content: `✅ Cupom **${cupom}** aplicado! Desconto de **${formatBRL(desconto)}** no total.` });
+  } else {
+    await interaction.editReply({ content: `❌ Cupom **${cupom}** inválido ou esgotado.` });
+  }
 }
 
 async function handleCatCheckout(interaction, orderId) {
@@ -1875,6 +2094,11 @@ function startPaymentPolling(client, guild, order, codexPaymentId) {
     try {
       const ch = guild.channels.cache.get(updatedOrder.channelId);
       if (ch) {
+        // Desbloqueia o canal para o cliente poder falar novamente (só Robux, pois Gamepass nunca travou)
+        if (updatedOrder.productType === "robux") {
+          await ch.permissionOverwrites.edit(updatedOrder.userId, { SendMessages: true }).catch(() => {});
+        }
+
         const embed = new EmbedBuilder()
           .setTitle("✅ Pagamento Aprovado!")
           .setDescription(
@@ -2075,60 +2299,91 @@ async function handleEntregarCommand(interaction) {
     return interaction.reply({ content: "❌ Você não tem permissão.", ephemeral: true });
   }
 
-  await interaction.deferReply({ ephemeral: true });
-
   const targetUser = interaction.options.getUser("usuario");
   const produto = interaction.options.getString("produto");
   const imagem = interaction.options.getAttachment("imagem");
-  const paymentId = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 
-  // Busca pedido mais recente do usuário (pending_payment ou paid)
+  // Busca pedido antes de confirmar
   const order = await Order.findOne({
     guildId: interaction.guildId,
     userId: targetUser.id,
     status: { $in: ["open", "pending_payment", "paid", "awaiting_gamepass"] },
   }).sort({ createdAt: -1 });
 
-  if (order) {
-    await Order.findByIdAndUpdate(order._id, { status: "delivered" });
-    // Renomeia o canal do ticket se existir
-    try {
-      const ticketCh = interaction.guild.channels.cache.get(order.channelId);
-      if (ticketCh) {
-        await ticketCh.setName(`✅・entregue-${targetUser.id.slice(-4)}`);
-        // Manda confirmação no ticket
-        const confirmEmbed = new EmbedBuilder()
-          .setTitle("✅ Pedido Entregue!")
-          .setDescription(
-            `<@${targetUser.id}>, seu pedido foi **entregue com sucesso**!\n\n` +
-            `📦 **Produto:** ${produto}\n\n` +
-            `Obrigado pela confiança na **Heaven's Market**! 💙\n` +
-            `⭐ Deixe sua avaliação em <#${CH_REFS}>`
-          )
-          .setColor(0x57f287)
-          .setTimestamp();
-        if (imagem) confirmEmbed.setImage(imagem.url);
-        await ticketCh.send({ embeds: [confirmEmbed] });
-        // Apagar canal após 60 segundos
-        await ticketCh.send({ content: "🗑️ Este canal será apagado em **60 segundos**." });
-        setTimeout(async () => {
-          try { await ticketCh.delete(); } catch { /* ignora */ }
-        }, 60_000);
-      }
-    } catch { /* ignora */ }
-  }
+  const valorStr = order?.totalAmount > 0 ? formatBRL(order.totalAmount) : "—";
+  const tipoStr = order?.productType === "gamepass" ? "🎮 Gamepass" : "💎 Robux";
+  const robloxStr = order?.robloxUsername ? `**${order.robloxDisplayName}** (@${order.robloxUsername})` : "—";
+  const itensStr = order?.cartItems?.length
+    ? order.cartItems.map(i => `• ${i.gameName} — ${i.productName}`).join("\n")
+    : order?.quantity > 0 ? `${order.quantity} Robux` : "—";
 
-  // Monta objeto parcial para os logs caso não haja order
-  const logData = order || {
-    _id: paymentId,
-    userId: targetUser.id,
-    productType: "robux",
-    quantity: 0,
-    totalAmount: 0,
-    couponCode: null,
-    cartItems: [],
-    discountAmount: 0,
-  };
+  // Embed de confirmação
+  const confirmEmbed = new EmbedBuilder()
+    .setTitle("⚠️ Confirmar Entrega")
+    .setDescription(`Revise os dados antes de confirmar a entrega para <@${targetUser.id}>:`)
+    .addFields(
+      { name: "👤 Usuário", value: `${targetUser.tag}`, inline: true },
+      { name: "🎮 Roblox", value: robloxStr, inline: true },
+      { name: "📦 Produto informado", value: produto, inline: false },
+      { name: "🛒 Itens do pedido", value: itensStr, inline: false },
+      { name: "💰 Valor", value: valorStr, inline: true },
+      { name: "🏷️ Tipo", value: tipoStr, inline: true },
+      ...(order?.couponCode ? [{ name: "🎟️ Cupom", value: `\`${order.couponCode}\``, inline: true }] : []),
+    )
+    .setColor(0xfee75c)
+    .setFooter({ text: "Esta ação não pode ser desfeita" })
+    .setTimestamp();
+
+  const confirmId = `entregar_confirm_${targetUser.id}_${Date.now()}`;
+  const cancelId = `entregar_cancel_${Date.now()}`;
+
+  const row = new ActionRowBuilder().addComponents(
+    new ButtonBuilder().setCustomId(confirmId).setLabel("✅ Confirmar Entrega").setStyle(ButtonStyle.Success),
+    new ButtonBuilder().setCustomId(cancelId).setLabel("✖ Cancelar").setStyle(ButtonStyle.Danger),
+  );
+
+  await interaction.reply({ embeds: [confirmEmbed], components: [row], ephemeral: true });
+
+  // Aguarda clique por 60s
+  const filter = i => i.user.id === interaction.user.id && (i.customId === confirmId || i.customId === cancelId);
+  const collector = interaction.channel.createMessageComponentCollector({ filter, time: 60_000, max: 1 });
+
+  collector.on("collect", async (btn) => {
+    await btn.deferUpdate();
+    if (btn.customId === cancelId) {
+      return interaction.editReply({ content: "❌ Entrega cancelada.", embeds: [], components: [] });
+    }
+
+    // Confirma entrega
+    const paymentId = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+    if (order) {
+      await Order.findByIdAndUpdate(order._id, { status: "delivered" });
+      try {
+        const ticketCh = interaction.guild.channels.cache.get(order.channelId);
+        if (ticketCh) {
+          await ticketCh.setName(`✅・entregue-${targetUser.id.slice(-4)}`);
+          const deliveredEmbed = new EmbedBuilder()
+            .setTitle("✅ Pedido Entregue!")
+            .setDescription(
+              `<@${targetUser.id}>, seu pedido foi **entregue com sucesso**!\n\n` +
+              `📦 **Produto:** ${produto}\n\n` +
+              `Obrigado pela confiança na **Heaven's Market**! 💙\n` +
+              `⭐ Deixe sua avaliação em <#${CH_REFS}>`
+            )
+            .setColor(0x57f287)
+            .setTimestamp();
+          if (imagem) deliveredEmbed.setImage(imagem.url);
+          await ticketCh.send({ embeds: [deliveredEmbed] });
+          await ticketCh.send({ content: "🗑️ Este canal será apagado em **60 segundos**." });
+          setTimeout(async () => { try { await ticketCh.delete(); } catch { } }, 60_000);
+        }
+      } catch { }
+    }
+
+    const logData = order || {
+      _id: paymentId, userId: targetUser.id, productType: "robux",
+      quantity: 0, totalAmount: 0, couponCode: null, cartItems: [], discountAmount: 0,
+    };
 
   // ── Canal de compras públicas ──
   const embedPublic = new EmbedBuilder()
@@ -2209,20 +2464,27 @@ async function handleEntregarCommand(interaction) {
   if (imagem) embedPV.setImage(imagem.url);
 
   // Dispara todos em paralelo
-  await Promise.allSettled([
-    sendToChannel(interaction.guild, CH_COMPRAS, { content: `<@${targetUser.id}>`, embeds: [embedPublic] }),
-    sendToChannel(interaction.guild, CH_ENTREGAS, { content: `<@${targetUser.id}>`, embeds: [embedEntrega], components: [verPendentesBtn] }),
-    sendToChannel(interaction.guild, CH_REFS, { content: `<@${targetUser.id}>`, embeds: [embedRef] }),
-    sendToChannel(interaction.guild, CH_LOGS, { content: `<@${targetUser.id}> #${paymentId}`, embeds: [embedLog] }),
-    (async () => {
-      try {
-        const member = await interaction.guild.members.fetch(targetUser.id).catch(() => null);
-        if (member) await member.send({ embeds: [embedPV] }).catch(() => {});
-      } catch { /* DMs fechadas — ignora */ }
-    })(),
-  ]);
+    await Promise.allSettled([
+      sendToChannel(interaction.guild, CH_COMPRAS, { content: `<@${targetUser.id}>`, embeds: [embedPublic] }),
+      sendToChannel(interaction.guild, CH_ENTREGAS, { content: `<@${targetUser.id}>`, embeds: [embedEntrega], components: [verPendentesBtn] }),
+      sendToChannel(interaction.guild, CH_REFS, { content: `<@${targetUser.id}>`, embeds: [embedRef] }),
+      sendToChannel(interaction.guild, CH_LOGS, { content: `<@${targetUser.id}> #${paymentId}`, embeds: [embedLog] }),
+      (async () => {
+        try {
+          const member = await interaction.guild.members.fetch(targetUser.id).catch(() => null);
+          if (member) await member.send({ embeds: [embedPV] }).catch(() => {});
+        } catch { }
+      })(),
+    ]);
 
-  await interaction.editReply({ content: `✅ Entrega de **${produto}** para <@${targetUser.id}> registrada em todos os canais!` });
+    await interaction.editReply({ content: `✅ Entrega de **${produto}** para <@${targetUser.id}> registrada!`, embeds: [], components: [] });
+  });
+
+  collector.on("end", (_, reason) => {
+    if (reason === "time") {
+      interaction.editReply({ content: "⏱️ Tempo esgotado. Use `/entregar` novamente.", embeds: [], components: [] }).catch(() => {});
+    }
+  });
 }
 
 // ========== AVALIAÇÃO ==========
@@ -2289,6 +2551,854 @@ async function handleAvaliacaoModal(interaction, stars) {
 
   await interaction.channel.send({ embeds: [embed] });
   await interaction.editReply({ content: "✅ Avaliação enviada! Obrigado pelo seu feedback 💙" });
+}
+
+// ========== /calcular ==========
+// Guarda ID da última mensagem do /calcular por canal para poder apagar
+const calcularMessages = new Map(); // channelId → messageId
+
+async function handleCalcularCommand(interaction) {
+  const quantidade = interaction.options.getInteger("robux");
+
+  const precoRobux = quantidade * ROBUX_PRICE_BRL;
+  const precoGift  = quantidade * GAMEPASS_PRICE_BRL;
+  const gamepassRobux = Math.ceil(quantidade / 0.7);
+
+  // Apaga mensagem anterior do /calcular neste canal
+  const oldMsgId = calcularMessages.get(interaction.channelId);
+  if (oldMsgId) {
+    try {
+      const oldMsg = await interaction.channel.messages.fetch(oldMsgId).catch(() => null);
+      if (oldMsg) await oldMsg.delete().catch(() => {});
+    } catch { /* ignora */ }
+  }
+
+  const embedValores = new EmbedBuilder()
+    .setTitle("💱 Valores dos Produtos")
+    .addFields(
+      { name: "💎 Quantidade desejada:", value: `${quantidade} Robux`, inline: false },
+      { name: "🔸 Valor a pagar (taxado):", value: `R$ ${precoRobux.toFixed(2).replace(".", ",")}`, inline: false },
+      { name: "🔹 Gamepass (para receber " + quantidade + "):", value: `${gamepassRobux} Robux`, inline: false },
+      { name: "🎁 Valor via Gift (em game):", value: `R$ ${precoGift.toFixed(2).replace(".", ",")}`, inline: false },
+    )
+    .setDescription("🔗 **Clique aqui para comprar**\n⏱️ *Os valores podem variar conforme taxas e disponibilidade.*")
+    .setColor(0x57f287)
+    .setThumbnail("https://i.imgur.com/NxqBMbD.png");
+
+  const embedTutorial = new EmbedBuilder()
+    .setTitle("✨ Como Calcular os Preços")
+    .setDescription(
+      "1️⃣ Use o comando `/calcular` e insira o valor desejado em **Robux**.\n" +
+      "2️⃣ Confira com atenção os preços exibidos para evitar confusão.\n" +
+      "3️⃣ **Lembre-se:**\n\n" +
+      "> 🔸 O preço de Robux mostrado **já inclui todas as taxas**.\n" +
+      "> 🎁 O valor via **Gift (em game)** é sem taxa, usado para Gamepasses e jogos.\n\n" +
+      "⏱️ *Dúvidas? Fale com nossa equipe no canal de suporte!*"
+    )
+    .setColor(0x2b2d31);
+
+  // Responde ephemeral para não poluir (o bot manda a mensagem pública separado)
+  await interaction.reply({ content: "✅", ephemeral: true });
+
+  const sent = await interaction.channel.send({ embeds: [embedValores, embedTutorial] });
+  calcularMessages.set(interaction.channelId, sent.id);
+}
+
+// ========== /gastos ==========
+async function handleGastosCommand(interaction) {
+  await interaction.deferReply({ ephemeral: false });
+
+  const target = interaction.options.getUser("usuario") || interaction.user;
+  const member = await interaction.guild.members.fetch(target.id).catch(() => null);
+
+  const orders = await Order.find({
+    guildId: interaction.guildId,
+    userId: target.id,
+    status: { $in: ["paid", "delivered", "awaiting_gamepass"] },
+  });
+
+  const totalGeral = orders.reduce((s, o) => s + (o.totalAmount || 0), 0);
+  const totalRobux = orders
+    .filter(o => o.productType === "robux")
+    .reduce((s, o) => s + (o.totalAmount || 0), 0);
+  const totalGamepass = orders
+    .filter(o => o.productType === "gamepass")
+    .reduce((s, o) => s + (o.totalAmount || 0), 0);
+
+  const embed = new EmbedBuilder()
+    .setTitle(`${member?.displayName || target.username} (@${target.username})`)
+    .setThumbnail(target.displayAvatarURL())
+    .setDescription(
+      `💸 Gastou **${formatBRL(totalGeral)}** na loja\n` +
+      `💎 Robux: **${formatBRL(totalRobux)}**\n` +
+      `🎮 Gamepass: **${formatBRL(totalGamepass)}**`
+    )
+    .setColor(0x5865f2)
+    .setFooter({ text: `${orders.length} pedido(s) concluído(s) • Heaven's Market` })
+    .setTimestamp();
+
+  await interaction.editReply({ embeds: [embed] });
+}
+
+// ========== /aprovar ==========
+async function handleAprovarCommand(interaction) {
+  if (!interaction.member?.permissions.has(PermissionsBitField.Flags.Administrator)) {
+    return interaction.reply({ content: "❌ Sem permissão.", ephemeral: true });
+  }
+
+  await interaction.deferReply({ ephemeral: true });
+
+  const target = interaction.options.getUser("usuario");
+
+  const order = await Order.findOne({
+    guildId: interaction.guildId,
+    userId: target.id,
+    status: { $in: ["open", "pending_payment"] },
+  }).sort({ createdAt: -1 });
+
+  if (!order) {
+    return interaction.editReply({ content: `❌ Nenhum pedido pendente encontrado para <@${target.id}>.` });
+  }
+
+  await Order.findByIdAndUpdate(order._id, { status: "paid" });
+
+  // Avisa no ticket
+  try {
+    const ticketCh = interaction.guild.channels.cache.get(order.channelId);
+    if (ticketCh) {
+      const embed = new EmbedBuilder()
+        .setTitle("✅ Pagamento Aprovado!")
+        .setDescription(
+          `<@${order.userId}>, seu pagamento foi **aprovado pelo admin**!\n\n` +
+          `📦 Sua entrega será processada em breve.\n` +
+          `⭐ Deixe sua avaliação em <#${CH_REFS}> após receber.`
+        )
+        .setColor(0x57f287)
+        .setTimestamp();
+      await ticketCh.send({ embeds: [embed] });
+    }
+  } catch { /* ignora */ }
+
+  // Dispara logs
+  await Promise.allSettled([
+    logCompraPublica(interaction.guild, order),
+    logCompraAdmin(interaction.guild, order, order._id.toString()),
+    logEntrega(interaction.guild, order),
+    logRef(interaction.guild, order),
+    logPvMembro(interaction.guild, order, order._id.toString()),
+  ]);
+
+  await interaction.editReply({ content: `✅ Pedido de <@${target.id}> aprovado e logs enviados!` });
+}
+
+// ========== /status ==========
+async function handleStatusCommand(interaction) {
+  if (!interaction.member?.permissions.has(PermissionsBitField.Flags.Administrator)) {
+    return interaction.reply({ content: "❌ Sem permissão.", ephemeral: true });
+  }
+
+  const acao = interaction.options.getString("acao");
+  lojaAberta = acao === "abrir";
+
+  const embed = new EmbedBuilder()
+    .setTitle(lojaAberta ? "🟢 Loja Aberta!" : "🔴 Loja Fechada!")
+    .setDescription(
+      lojaAberta
+        ? "A loja está **aberta**. Os clientes já podem realizar compras."
+        : "A loja está **fechada**. Nenhuma nova compra pode ser iniciada até ser reaberta."
+    )
+    .setColor(lojaAberta ? 0x57f287 : 0xed4245)
+    .setFooter({ text: `Alterado por ${interaction.user.tag}` })
+    .setTimestamp();
+
+  await interaction.reply({ embeds: [embed] });
+}
+
+// ========== /ticket fechar ==========
+async function handleTicketCommand(interaction) {
+  if (!interaction.member?.permissions.has(PermissionsBitField.Flags.Administrator)) {
+    return interaction.reply({ content: "❌ Sem permissão.", ephemeral: true });
+  }
+
+  const sub = interaction.options.getSubcommand();
+  if (sub === "fechar") {
+    const order = await Order.findOne({
+      guildId: interaction.guildId,
+      channelId: interaction.channelId,
+      status: { $nin: ["delivered", "cancelled"] },
+    });
+
+    if (order) {
+      await Order.findByIdAndUpdate(order._id, { status: "cancelled" });
+    }
+
+    const embed = new EmbedBuilder()
+      .setTitle("🔒 Ticket Encerrado")
+      .setDescription(
+        `Este ticket foi encerrado por <@${interaction.user.id}>.\n` +
+        `O canal será apagado em **10 segundos**.`
+      )
+      .setColor(0xed4245)
+      .setTimestamp();
+
+    await interaction.reply({ embeds: [embed] });
+
+    setTimeout(async () => {
+      try { await interaction.channel.delete(); } catch { /* ignora */ }
+    }, 10_000);
+  }
+}
+
+// ========== AUTO-FECHAR POR INATIVIDADE ==========
+// Mapa: channelId → { timeout, orderId }
+const inactivityTimers = new Map();
+const INACTIVITY_WARN_MS  = 25 * 60 * 1000; // 25 minutos → aviso
+const INACTIVITY_CLOSE_MS = 30 * 60 * 1000; // 30 minutos → fecha
+
+function resetInactivityTimer(channel, orderId) {
+  // Limpa timer anterior se existir
+  const existing = inactivityTimers.get(channel.id);
+  if (existing) {
+    clearTimeout(existing.warnTimeout);
+    clearTimeout(existing.closeTimeout);
+  }
+
+  const warnTimeout = setTimeout(async () => {
+    try {
+      await channel.send({
+        content: `⚠️ Este ticket está **inativo há 25 minutos**. Será fechado automaticamente em 5 minutos caso não haja atividade.`,
+      });
+    } catch { /* ignora */ }
+  }, INACTIVITY_WARN_MS);
+
+  const closeTimeout = setTimeout(async () => {
+    try {
+      if (orderId) {
+        await Order.findByIdAndUpdate(orderId, { status: "cancelled" }).catch(() => {});
+      }
+      const embed = new EmbedBuilder()
+        .setTitle("⏱️ Ticket Encerrado por Inatividade")
+        .setDescription("Este ticket foi fechado automaticamente após **30 minutos** sem atividade.")
+        .setColor(0xed4245)
+        .setTimestamp();
+      await channel.send({ embeds: [embed] });
+      setTimeout(async () => { try { await channel.delete(); } catch { /* ignora */ } }, 5_000);
+    } catch { /* ignora */ }
+    inactivityTimers.delete(channel.id);
+  }, INACTIVITY_CLOSE_MS);
+
+  inactivityTimers.set(channel.id, { warnTimeout, closeTimeout });
+}
+
+// ========== /cupom ==========
+const Coupon = new Map(); // codigo → { desconto, usos, usosRestantes }
+
+async function handleCupomCommand(interaction) {
+  const sub = interaction.options.getSubcommand();
+
+  if (sub === "criar") {
+    const codigo = interaction.options.getString("codigo").toUpperCase().trim();
+    const desconto = interaction.options.getNumber("desconto");
+    const usos = interaction.options.getInteger("usos") ?? 0;
+    Coupon.set(codigo, { desconto, usos, usosRestantes: usos === 0 ? Infinity : usos });
+    return interaction.reply({
+      ephemeral: true,
+      embeds: [new EmbedBuilder()
+        .setTitle("✅ Cupom Criado")
+        .addFields(
+          { name: "🏷️ Código", value: `\`${codigo}\``, inline: true },
+          { name: "💰 Desconto", value: formatBRL(desconto), inline: true },
+          { name: "🔢 Usos", value: usos === 0 ? "Ilimitado" : String(usos), inline: true },
+        )
+        .setColor(0x57f287)],
+    });
+  }
+
+  if (sub === "deletar") {
+    const codigo = interaction.options.getString("codigo").toUpperCase().trim();
+    if (!Coupon.has(codigo)) return interaction.reply({ content: `❌ Cupom \`${codigo}\` não encontrado.`, ephemeral: true });
+    Coupon.delete(codigo);
+    return interaction.reply({ content: `✅ Cupom \`${codigo}\` deletado.`, ephemeral: true });
+  }
+
+  if (sub === "listar") {
+    if (Coupon.size === 0) return interaction.reply({ content: "Nenhum cupom ativo no momento.", ephemeral: true });
+    const lines = [...Coupon.entries()].map(([cod, data]) =>
+      `\`${cod}\` — ${formatBRL(data.desconto)} — Usos: ${data.usosRestantes === Infinity ? "∞" : data.usosRestantes}`
+    );
+    return interaction.reply({
+      ephemeral: true,
+      embeds: [new EmbedBuilder().setTitle("🏷️ Cupons Ativos").setDescription(lines.join("\n")).setColor(0x5865f2)],
+    });
+  }
+}
+
+// Função para aplicar cupom (chamada no checkout)
+function applyCoupon(codigo) {
+  const cod = (codigo || "").toUpperCase().trim();
+  const coupon = Coupon.get(cod);
+  if (!coupon) return { valid: false, desconto: 0 };
+  if (coupon.usosRestantes <= 0) return { valid: false, desconto: 0 };
+  if (coupon.usosRestantes !== Infinity) coupon.usosRestantes--;
+  return { valid: true, desconto: coupon.desconto };
+}
+
+// ========== /perfil ==========
+async function handlePerfilCommand(interaction) {
+  await interaction.deferReply();
+  const target = interaction.options.getUser("usuario") || interaction.user;
+  const member = await interaction.guild.members.fetch(target.id).catch(() => null);
+
+  const orders = await Order.find({ guildId: interaction.guildId, userId: target.id }).sort({ createdAt: -1 });
+  const entregues = orders.filter(o => ["paid", "delivered", "awaiting_gamepass"].includes(o.status));
+  const totalGasto = entregues.reduce((s, o) => s + (o.totalAmount || 0), 0);
+  const totalRobux = entregues.filter(o => o.productType === "robux").reduce((s, o) => s + (o.totalAmount || 0), 0);
+  const totalGp = entregues.filter(o => o.productType === "gamepass").reduce((s, o) => s + (o.totalAmount || 0), 0);
+
+  // Última conta Roblox vinculada
+  const lastOrder = orders.find(o => o.robloxUsername);
+
+  const embed = new EmbedBuilder()
+    .setTitle(`👤 Perfil — ${member?.displayName || target.username}`)
+    .setThumbnail(target.displayAvatarURL())
+    .addFields(
+      { name: "🎮 Roblox", value: lastOrder ? `**${lastOrder.robloxDisplayName}** (@${lastOrder.robloxUsername})` : "`Não vinculado`", inline: false },
+      { name: "📦 Pedidos concluídos", value: String(entregues.length), inline: true },
+      { name: "💸 Total gasto", value: `**${formatBRL(totalGasto)}**`, inline: true },
+      { name: "💎 Em Robux", value: formatBRL(totalRobux), inline: true },
+      { name: "🎮 Em Gamepass", value: formatBRL(totalGp), inline: true },
+    )
+    .setColor(0x5865f2)
+    .setFooter({ text: `ID: ${target.id} • Heaven's Market` })
+    .setTimestamp();
+
+  await interaction.editReply({ embeds: [embed] });
+}
+
+// ========== /jogo ==========
+async function handleJogoCommand(interaction) {
+  const sub = interaction.options.getSubcommand();
+
+  if (sub === "adicionar") {
+    const nome = interaction.options.getString("nome").trim();
+    const emoji = interaction.options.getString("emoji").trim();
+    const grupo = interaction.options.getString("grupo").trim();
+
+    const existing = await Catalog.findOne({ name: new RegExp(`^${nome}$`, "i") });
+    if (existing) return interaction.reply({ content: `❌ Jogo **${nome}** já existe no catálogo.`, ephemeral: true });
+
+    await Catalog.create({ name: nome, emoji, group: grupo, categories: [] });
+    return interaction.reply({
+      ephemeral: true,
+      embeds: [new EmbedBuilder()
+        .setTitle("✅ Jogo Adicionado")
+        .setDescription(`**${emoji} ${nome}** foi adicionado ao catálogo no grupo **${grupo}**.\n\nUse \`/produto adicionar\` para adicionar produtos a este jogo.`)
+        .setColor(0x57f287)],
+    });
+  }
+
+  if (sub === "remover") {
+    const nome = interaction.options.getString("nome").trim();
+    const jogo = await Catalog.findOneAndDelete({ name: new RegExp(`^${nome}$`, "i") });
+    if (!jogo) return interaction.reply({ content: `❌ Jogo **${nome}** não encontrado.`, ephemeral: true });
+    return interaction.reply({ content: `✅ **${jogo.emoji} ${jogo.name}** removido do catálogo.`, ephemeral: true });
+  }
+
+  if (sub === "listar") {
+    await interaction.deferReply({ ephemeral: true });
+    const games = await Catalog.find({ active: true }).sort({ group: 1, name: 1 });
+    if (games.length === 0) return interaction.editReply({ content: "Nenhum jogo cadastrado." });
+
+    const grouped = {};
+    for (const g of games) {
+      if (!grouped[g.group]) grouped[g.group] = [];
+      grouped[g.group].push(`${g.emoji} **${g.name}** (${g.categories.reduce((s, c) => s + c.products.length, 0)} produtos)`);
+    }
+
+    const desc = Object.entries(grouped).map(([grp, list]) => `**${grp}**\n${list.join("\n")}`).join("\n\n");
+    return interaction.editReply({
+      embeds: [new EmbedBuilder().setTitle(`🎮 Catálogo (${games.length} jogos)`).setDescription(desc).setColor(0x5865f2)],
+    });
+  }
+}
+
+// ========== /produto ==========
+async function handleProdutoCommand(interaction) {
+  const sub = interaction.options.getSubcommand();
+  const jogoNome = interaction.options.getString("jogo").trim();
+
+  const jogo = await Catalog.findOne({ name: new RegExp(`^${jogoNome}$`, "i") });
+  if (!jogo) return interaction.reply({ content: `❌ Jogo **${jogoNome}** não encontrado. Use \`/jogo listar\` para ver os jogos.`, ephemeral: true });
+
+  if (sub === "adicionar") {
+    const categoriaNome = interaction.options.getString("categoria").trim();
+    const prodNome = interaction.options.getString("nome").trim();
+    const preco = interaction.options.getNumber("preco");
+
+    let categoria = jogo.categories.find(c => c.name.toLowerCase() === categoriaNome.toLowerCase());
+    if (!categoria) {
+      jogo.categories.push({ name: categoriaNome, products: [] });
+      categoria = jogo.categories[jogo.categories.length - 1];
+    }
+    categoria.products.push({ name: prodNome, price: preco });
+    await jogo.save();
+
+    return interaction.reply({
+      ephemeral: true,
+      embeds: [new EmbedBuilder()
+        .setTitle("✅ Produto Adicionado")
+        .addFields(
+          { name: "🎮 Jogo", value: `${jogo.emoji} ${jogo.name}`, inline: true },
+          { name: "📂 Categoria", value: categoriaNome, inline: true },
+          { name: "🏷️ Produto", value: prodNome, inline: true },
+          { name: "💰 Preço", value: formatBRL(preco), inline: true },
+        )
+        .setColor(0x57f287)],
+    });
+  }
+
+  if (sub === "remover") {
+    const prodNome = interaction.options.getString("nome").trim();
+    let removido = false;
+    for (const cat of jogo.categories) {
+      const idx = cat.products.findIndex(p => p.name.toLowerCase() === prodNome.toLowerCase());
+      if (idx !== -1) { cat.products.splice(idx, 1); removido = true; break; }
+    }
+    if (!removido) return interaction.reply({ content: `❌ Produto **${prodNome}** não encontrado em **${jogo.name}**.`, ephemeral: true });
+    await jogo.save();
+    return interaction.reply({ content: `✅ Produto **${prodNome}** removido de **${jogo.emoji} ${jogo.name}**.`, ephemeral: true });
+  }
+
+  if (sub === "editar") {
+    const prodNome = interaction.options.getString("nome").trim();
+    const novoPreco = interaction.options.getNumber("preco");
+    let encontrado = false;
+    let precoAntigo = 0;
+    for (const cat of jogo.categories) {
+      const prod = cat.products.find(p => p.name.toLowerCase() === prodNome.toLowerCase());
+      if (prod) {
+        precoAntigo = prod.price;
+        prod.price = novoPreco;
+        encontrado = true;
+        break;
+      }
+    }
+    if (!encontrado) return interaction.reply({ content: `❌ Produto **${prodNome}** não encontrado em **${jogo.name}**.`, ephemeral: true });
+    await jogo.save();
+    return interaction.reply({
+      ephemeral: true,
+      embeds: [new EmbedBuilder()
+        .setTitle("✏️ Produto Editado")
+        .addFields(
+          { name: "🎮 Jogo", value: `${jogo.emoji} ${jogo.name}`, inline: true },
+          { name: "🏷️ Produto", value: prodNome, inline: true },
+          { name: "💰 Preço anterior", value: formatBRL(precoAntigo), inline: true },
+          { name: "💰 Novo preço", value: formatBRL(novoPreco), inline: true },
+        )
+        .setColor(0x5865f2)],
+    });
+  }
+}
+
+// ========== /ping ==========
+async function handlePingCommand(interaction) {
+  const sent = await interaction.reply({ content: "🏓 Calculando...", fetchReply: true });
+  const latency = sent.createdTimestamp - interaction.createdTimestamp;
+  const wsLatency = client.ws.ping;
+
+  let dbStatus = "✅ Online";
+  try {
+    await Order.findOne().limit(1);
+  } catch {
+    dbStatus = "❌ Offline";
+  }
+
+  const embed = new EmbedBuilder()
+    .setTitle("🏓 Pong!")
+    .addFields(
+      { name: "📡 Latência", value: `**${latency}ms**`, inline: true },
+      { name: "💓 WebSocket", value: `**${wsLatency}ms**`, inline: true },
+      { name: "🗄️ MongoDB", value: dbStatus, inline: true },
+    )
+    .setColor(latency < 200 ? 0x57f287 : latency < 500 ? 0xfee75c : 0xed4245)
+    .setFooter({ text: "Heaven's Market" })
+    .setTimestamp();
+
+  await interaction.editReply({ content: "", embeds: [embed] });
+}
+
+// ========== /ranking ==========
+async function handleRankingCommand(interaction) {
+  await interaction.deferReply();
+
+  const orders = await Order.find({
+    guildId: interaction.guildId,
+    status: { $in: ["paid", "delivered", "awaiting_gamepass"] },
+    totalAmount: { $gt: 0 },
+  });
+
+  // Agrupa por usuário
+  const map = {};
+  for (const o of orders) {
+    if (!map[o.userId]) map[o.userId] = { total: 0, pedidos: 0 };
+    map[o.userId].total += o.totalAmount || 0;
+    map[o.userId].pedidos++;
+  }
+
+  const sorted = Object.entries(map)
+    .sort((a, b) => b[1].total - a[1].total)
+    .slice(0, 5);
+
+  if (sorted.length === 0) {
+    return interaction.editReply({ content: "Nenhuma compra registrada ainda." });
+  }
+
+  const medals = ["🥇", "🥈", "🥉", "4️⃣", "5️⃣"];
+  const lines = await Promise.all(sorted.map(async ([userId, data], i) => {
+    const user = await client.users.fetch(userId).catch(() => null);
+    const name = user ? `**${user.username}**` : `<@${userId}>`;
+    return `${medals[i]} ${name} — **${formatBRL(data.total)}** (${data.pedidos} pedido${data.pedidos > 1 ? "s" : ""})`;
+  }));
+
+  const embed = new EmbedBuilder()
+    .setTitle("🏆 Ranking de Compradores")
+    .setDescription(lines.join("\n"))
+    .setColor(0xfee75c)
+    .setFooter({ text: "Heaven's Market • Top 5 maiores compradores" })
+    .setTimestamp();
+
+  await interaction.editReply({ embeds: [embed] });
+}
+
+// ========== /historico ==========
+async function handleHistoricoCommand(interaction) {
+  await interaction.deferReply({ ephemeral: true });
+  const target = interaction.options.getUser("usuario") || interaction.user;
+
+  const orders = await Order.find({ guildId: interaction.guildId, userId: target.id })
+    .sort({ createdAt: -1 }).limit(10);
+
+  if (orders.length === 0) return interaction.editReply({ content: `Nenhum pedido encontrado para <@${target.id}>.` });
+
+  const statusEmoji = { open: "🟢", pending_payment: "🟡", paid: "✅", awaiting_gamepass: "🔵", delivered: "✅", cancelled: "❌" };
+  const lines = orders.map((o, i) => {
+    const emoji = statusEmoji[o.status] || "⚪";
+    const tipo = o.productType === "robux" ? "💎 Robux" : "🎮 Gamepass";
+    const valor = o.totalAmount > 0 ? formatBRL(o.totalAmount) : "—";
+    const data = new Date(o.createdAt).toLocaleDateString("pt-BR");
+    return `${i + 1}. ${emoji} ${tipo} — **${valor}** — ${data}`;
+  });
+
+  const embed = new EmbedBuilder()
+    .setTitle(`📋 Histórico — ${target.username}`)
+    .setDescription(lines.join("\n"))
+    .setColor(0x5865f2)
+    .setFooter({ text: `Últimos ${orders.length} pedido(s) • Heaven's Market` })
+    .setTimestamp();
+
+  await interaction.editReply({ embeds: [embed] });
+}
+
+// ========== /buscar ==========
+async function handleBuscarCommand(interaction) {
+  await interaction.deferReply({ ephemeral: true });
+  const query = interaction.options.getString("produto").toLowerCase().trim();
+
+  const games = await Catalog.find({ active: true });
+  const resultados = [];
+
+  for (const game of games) {
+    for (const cat of game.categories) {
+      for (const prod of cat.products) {
+        if (prod.name.toLowerCase().includes(query)) {
+          resultados.push({
+            jogo: `${game.emoji} ${game.name}`,
+            categoria: cat.name,
+            produto: prod.name,
+            preco: prod.price,
+          });
+        }
+      }
+    }
+  }
+
+  if (resultados.length === 0) {
+    return interaction.editReply({ content: `❌ Nenhum produto encontrado para **"${query}"**.` });
+  }
+
+  const lines = resultados.slice(0, 10).map(r =>
+    `${r.jogo} › ${r.categoria}\n> **${r.produto}** — R$ ${r.preco.toFixed(2).replace(".", ",")}`
+  );
+
+  const embed = new EmbedBuilder()
+    .setTitle(`🔍 Resultados para "${query}"`)
+    .setDescription(lines.join("\n\n"))
+    .setColor(0x5865f2)
+    .setFooter({ text: `${resultados.length} resultado(s) encontrado(s)` });
+
+  await interaction.editReply({ embeds: [embed] });
+}
+
+// ========== /cancelar ==========
+async function handleCancelarCommand(interaction) {
+  if (!interaction.member?.permissions.has(PermissionsBitField.Flags.Administrator)) {
+    return interaction.reply({ content: "❌ Sem permissão.", ephemeral: true });
+  }
+  await interaction.deferReply({ ephemeral: true });
+
+  const target = interaction.options.getUser("usuario");
+  const motivo = interaction.options.getString("motivo");
+
+  const order = await Order.findOne({
+    guildId: interaction.guildId,
+    userId: target.id,
+    status: { $nin: ["delivered", "cancelled"] },
+  }).sort({ createdAt: -1 });
+
+  if (!order) return interaction.editReply({ content: `❌ Nenhum pedido ativo para <@${target.id}>.` });
+
+  await Order.findByIdAndUpdate(order._id, { status: "cancelled" });
+
+  // Avisa no ticket
+  try {
+    const ch = interaction.guild.channels.cache.get(order.channelId);
+    if (ch) {
+      const embed = new EmbedBuilder()
+        .setTitle("❌ Pedido Cancelado")
+        .setDescription(`Seu pedido foi cancelado por um administrador.\n\n**Motivo:** ${motivo}`)
+        .setColor(0xed4245)
+        .setTimestamp();
+      await ch.send({ embeds: [embed] });
+      setTimeout(async () => { try { await ch.delete(); } catch { } }, 10_000);
+    }
+  } catch { }
+
+  // DM para o cliente
+  try {
+    const member = await interaction.guild.members.fetch(target.id).catch(() => null);
+    if (member) {
+      const embed = new EmbedBuilder()
+        .setTitle("❌ Seu pedido foi cancelado")
+        .setDescription(`Um administrador cancelou seu pedido na **Heaven's Market**.\n\n**Motivo:** ${motivo}\n\nSe tiver dúvidas, entre em contato com nossa equipe.`)
+        .setColor(0xed4245)
+        .setTimestamp();
+      await member.send({ embeds: [embed] }).catch(() => { });
+    }
+  } catch { }
+
+  await interaction.editReply({ content: `✅ Pedido de <@${target.id}> cancelado.\n**Motivo:** ${motivo}` });
+}
+
+// ========== /stats ==========
+async function handleStatsCommand(interaction) {
+  await interaction.deferReply({ ephemeral: true });
+
+  const agora = new Date();
+  const inicioDia = new Date(agora); inicioDia.setHours(0, 0, 0, 0);
+  const inicioSemana = new Date(agora); inicioSemana.setDate(agora.getDate() - 7);
+  const inicioMes = new Date(agora.getFullYear(), agora.getMonth(), 1);
+
+  const [totalOrders, paidOrders, cancelledOrders, ordersHoje, ordersSemana, ordersMes] = await Promise.all([
+    Order.countDocuments({ guildId: interaction.guildId }),
+    Order.find({ guildId: interaction.guildId, status: { $in: ["paid", "delivered"] } }),
+    Order.countDocuments({ guildId: interaction.guildId, status: "cancelled" }),
+    Order.find({ guildId: interaction.guildId, status: { $in: ["paid", "delivered"] }, createdAt: { $gte: inicioDia } }),
+    Order.find({ guildId: interaction.guildId, status: { $in: ["paid", "delivered"] }, createdAt: { $gte: inicioSemana } }),
+    Order.find({ guildId: interaction.guildId, status: { $in: ["paid", "delivered"] }, createdAt: { $gte: inicioMes } }),
+  ]);
+
+  const totalVendido = paidOrders.reduce((s, o) => s + (o.totalAmount || 0), 0);
+  const vendidoHoje = ordersHoje.reduce((s, o) => s + (o.totalAmount || 0), 0);
+  const vendidoSemana = ordersSemana.reduce((s, o) => s + (o.totalAmount || 0), 0);
+  const vendidoMes = ordersMes.reduce((s, o) => s + (o.totalAmount || 0), 0);
+
+  // Produto mais vendido
+  const prodCount = {};
+  for (const o of paidOrders) {
+    if (o.productType === "robux") {
+      prodCount["💎 Robux"] = (prodCount["💎 Robux"] || 0) + 1;
+    } else if (o.cartItems?.length) {
+      for (const item of o.cartItems) {
+        const key = `${item.gameName} — ${item.productName}`;
+        prodCount[key] = (prodCount[key] || 0) + 1;
+      }
+    }
+  }
+  const maisPedido = Object.entries(prodCount).sort((a, b) => b[1] - a[1])[0];
+
+  const embed = new EmbedBuilder()
+    .setTitle("📊 Estatísticas da Loja")
+    .addFields(
+      { name: "📅 Hoje", value: `**${formatBRL(vendidoHoje)}** (${ordersHoje.length} pedido${ordersHoje.length !== 1 ? "s" : ""})`, inline: true },
+      { name: "📆 Esta semana", value: `**${formatBRL(vendidoSemana)}** (${ordersSemana.length} pedido${ordersSemana.length !== 1 ? "s" : ""})`, inline: true },
+      { name: "🗓️ Este mês", value: `**${formatBRL(vendidoMes)}** (${ordersMes.length} pedido${ordersMes.length !== 1 ? "s" : ""})`, inline: true },
+      { name: "💸 Total geral", value: `**${formatBRL(totalVendido)}**`, inline: true },
+      { name: "📦 Total de pedidos", value: String(totalOrders), inline: true },
+      { name: "❌ Cancelados", value: String(cancelledOrders), inline: true },
+      { name: "🏆 Mais pedido", value: maisPedido ? `${maisPedido[0]} (${maisPedido[1]}x)` : "—", inline: false },
+    )
+    .setColor(0x5865f2)
+    .setFooter({ text: "Heaven's Market • Estatísticas" })
+    .setTimestamp();
+
+  await interaction.editReply({ embeds: [embed] });
+}
+
+// ========== ANTI-SPAM DE TICKETS ==========
+const ticketAttempts = new Map(); // userId → { count, resetAt }
+const MAX_TICKETS_PER_WINDOW = 3;
+const SPAM_WINDOW_MS = 10 * 60 * 1000; // 10 minutos
+
+function checkTicketSpam(userId) {
+  const agora = Date.now();
+
+  // Limpa entradas expiradas para não vazar memória
+  for (const [id, entry] of ticketAttempts.entries()) {
+    if (agora > entry.resetAt) ticketAttempts.delete(id);
+  }
+
+  const entry = ticketAttempts.get(userId);
+  if (!entry || agora > entry.resetAt) {
+    ticketAttempts.set(userId, { count: 1, resetAt: agora + SPAM_WINDOW_MS });
+    return false;
+  }
+
+  entry.count++;
+  if (entry.count > MAX_TICKETS_PER_WINDOW) return true;
+  return false;
+}
+
+// ========== /desconto ==========
+async function handleDescontoCommand(interaction) {
+  await interaction.deferReply({ ephemeral: true });
+
+  const target = interaction.options.getUser("usuario");
+  const valor = interaction.options.getNumber("valor");
+
+  const order = await Order.findOne({
+    guildId: interaction.guildId,
+    userId: target.id,
+    status: { $in: ["open", "pending_payment", "awaiting_gamepass"] },
+  }).sort({ createdAt: -1 });
+
+  if (!order) return interaction.editReply({ content: `❌ Nenhum pedido ativo para <@${target.id}>.` });
+
+  await Order.findByIdAndUpdate(order._id, { discountAmount: (order.discountAmount || 0) + valor });
+
+  // Avisa no ticket
+  try {
+    const ch = interaction.guild.channels.cache.get(order.channelId);
+    if (ch) {
+      await ch.send({
+        embeds: [new EmbedBuilder()
+          .setTitle("🎉 Desconto Aplicado!")
+          .setDescription(`Um administrador aplicou um desconto de **${formatBRL(valor)}** no seu pedido!`)
+          .setColor(0x57f287)
+          .setTimestamp()],
+      });
+    }
+  } catch { }
+
+  await interaction.editReply({ content: `✅ Desconto de **${formatBRL(valor)}** aplicado no pedido de <@${target.id}>.` });
+}
+
+// ========== /alterar-nick ==========
+async function handleAlterarNickCommand(interaction) {
+  await interaction.deferReply({ ephemeral: true });
+
+  const target = interaction.options.getUser("usuario");
+  const novoNick = interaction.options.getString("nick").trim();
+
+  const order = await Order.findOne({
+    guildId: interaction.guildId,
+    userId: target.id,
+    productType: "gamepass",
+    status: { $in: ["open", "pending_payment", "paid", "awaiting_gamepass"] },
+  }).sort({ createdAt: -1 });
+
+  if (!order) return interaction.editReply({ content: `❌ Nenhum pedido de gamepass ativo para <@${target.id}>.` });
+
+  // Busca o usuário Roblox pelo nick novo
+  const robloxUser = await fetchRobloxUser(novoNick);
+  if (!robloxUser) {
+    return interaction.editReply({ content: `❌ Usuário Roblox **${novoNick}** não encontrado.` });
+  }
+
+  await Order.findByIdAndUpdate(order._id, {
+    robloxUsername: robloxUser.name,
+    robloxDisplayName: robloxUser.displayName || robloxUser.name,
+  });
+
+  // Avisa no ticket
+  try {
+    const ch = interaction.guild.channels.cache.get(order.channelId);
+    if (ch) {
+      await ch.send({
+        embeds: [new EmbedBuilder()
+          .setTitle("✏️ Nick Roblox Alterado")
+          .setDescription(`O nick Roblox do pedido foi atualizado para:\n**${robloxUser.displayName || robloxUser.name}** (@${robloxUser.name})`)
+          .setColor(0x5865f2)
+          .setTimestamp()],
+      });
+    }
+  } catch { }
+
+  await interaction.editReply({ content: `✅ Nick alterado para **${robloxUser.name}** no pedido de <@${target.id}>.` });
+}
+
+// ========== /reabrir ==========
+async function handleReabrirCommand(interaction) {
+  await interaction.deferReply({ ephemeral: true });
+
+  const target = interaction.options.getUser("usuario");
+
+  const order = await Order.findOne({
+    guildId: interaction.guildId,
+    userId: target.id,
+    status: "cancelled",
+  }).sort({ createdAt: -1 });
+
+  if (!order) return interaction.editReply({ content: `❌ Nenhum pedido cancelado encontrado para <@${target.id}>.` });
+
+  // Verifica se canal ainda existe
+  const chExistente = order.channelId ? interaction.guild.channels.cache.get(order.channelId) : null;
+
+  if (chExistente) {
+    // Canal ainda existe, só reativa o pedido
+    await Order.findByIdAndUpdate(order._id, { status: "open" });
+    await chExistente.send({
+      embeds: [new EmbedBuilder()
+        .setTitle("🔓 Ticket Reaberto")
+        .setDescription(`<@${target.id}>, seu ticket foi reaberto por um administrador.`)
+        .setColor(0x57f287)
+        .setTimestamp()],
+    });
+    return interaction.editReply({ content: `✅ Pedido reaberto em <#${order.channelId}>.` });
+  }
+
+  // Canal foi apagado — cria novo
+  const categoryChannel = interaction.guild.channels.cache.get(SHOP_CATEGORY_ID);
+  if (!categoryChannel) return interaction.editReply({ content: "❌ Categoria de tickets não encontrada." });
+
+  const prefix = order.productType === "gamepass" ? "🎮" : "💎";
+  const shortId = String(order._id).slice(-4);
+  const channel = await interaction.guild.channels.create({
+    name: `${prefix}・reaberto-${shortId}`,
+    type: ChannelType.GuildText,
+    parent: SHOP_CATEGORY_ID,
+    permissionOverwrites: await buildPermissionOverwrites(interaction.guild, target.id),
+  });
+
+  await Order.findByIdAndUpdate(order._id, { status: "open", channelId: channel.id });
+
+  const embed = new EmbedBuilder()
+    .setTitle("🔓 Ticket Reaberto")
+    .setDescription(`<@${target.id}>, seu ticket foi reaberto por um administrador.\n\nContinue de onde parou.`)
+    .setColor(0x57f287)
+    .setTimestamp();
+
+  await channel.send({ content: `<@${target.id}>`, embeds: [embed] });
+  await interaction.editReply({ content: `✅ Novo canal criado: <#${channel.id}>.` });
 }
 
 // ========== SERVIDOR HTTP ==========
