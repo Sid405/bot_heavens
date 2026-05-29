@@ -659,7 +659,7 @@ client.once("clientReady", async () => {
     // Limpa comandos globais antigos
     await rest.put(Routes.applicationCommands(CLIENT_ID), { body: [] });
     // Registra por servidor (aparece na hora)
-    await rest.put(Routes.applicationGuildCommands(CLIENT_ID, "1125234022432383037"), { body: slashCommands });
+    await rest.put(Routes.applicationGuildCommands(CLIENT_ID, "1125234022432383037"), { body: [] });
     console.log("Slash commands registrados no servidor.");
   } catch (err) {
     console.error("[slash] Erro ao registrar slash commands:", err);
