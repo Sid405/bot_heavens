@@ -1,0 +1,3858 @@
+{
+  "source": "dados.txt",
+  "pricing": {
+    "brlPer1000Robux": 34,
+    "formula": "robux * 0.034",
+    "rounding": "nearest_cent"
+  },
+  "games": [
+    {
+      "name": "99 Nights in the Forest",
+      "emoji": "🌲",
+      "group": "Simuladores & RPG",
+      "categories": [
+        {
+          "name": "Gamepass",
+          "products": [
+            {
+              "name": "20 Diamonds (Small Pile)",
+              "robux": 99,
+              "price": 3.37
+            },
+            {
+              "name": "100 Diamonds (Old Sack)",
+              "robux": 400,
+              "price": 13.6
+            },
+            {
+              "name": "250 Diamonds (Good Sack)",
+              "robux": 900,
+              "price": 30.6
+            },
+            {
+              "name": "700 Diamonds (Giant Sack)",
+              "robux": 2500,
+              "price": 85.0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Anime Destroyers",
+      "emoji": "⚔️",
+      "group": "Anime & Luta",
+      "categories": [
+        {
+          "name": "Gamepass",
+          "products": [
+            {
+              "name": "Big Storage",
+              "robux": 99,
+              "price": 3.37
+            },
+            {
+              "name": "Fast Click",
+              "robux": 99,
+              "price": 3.37
+            },
+            {
+              "name": "Lucky",
+              "robux": 99,
+              "price": 3.37
+            },
+            {
+              "name": "VIP",
+              "robux": 149,
+              "price": 5.07
+            },
+            {
+              "name": "Better Range",
+              "robux": 149,
+              "price": 5.07
+            },
+            {
+              "name": "2x Damage",
+              "robux": 199,
+              "price": 6.77
+            },
+            {
+              "name": "Fast Roll",
+              "robux": 199,
+              "price": 6.77
+            },
+            {
+              "name": "2x Gems",
+              "robux": 199,
+              "price": 6.77
+            },
+            {
+              "name": "2x Energy",
+              "robux": 199,
+              "price": 6.77
+            },
+            {
+              "name": "Extra Roll",
+              "robux": 249,
+              "price": 8.47
+            },
+            {
+              "name": "Fast Open",
+              "robux": 299,
+              "price": 10.17
+            },
+            {
+              "name": "2x XP",
+              "robux": 399,
+              "price": 13.57
+            },
+            {
+              "name": "Super Lucky",
+              "robux": 399,
+              "price": 13.57
+            },
+            {
+              "name": "2x Drops",
+              "robux": 399,
+              "price": 13.57
+            },
+            {
+              "name": "Extra Equips",
+              "robux": 499,
+              "price": 16.97
+            },
+            {
+              "name": "Extra Open",
+              "robux": 499,
+              "price": 16.97
+            },
+            {
+              "name": "All gamepass",
+              "robux": 3499,
+              "price": 118.97
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Anime Eternal",
+      "emoji": "✨",
+      "group": "Anime & Luta",
+      "categories": [
+        {
+          "name": "Gamepass",
+          "products": [
+            {
+              "name": "Fast Clicker",
+              "robux": 99,
+              "price": 3.37
+            },
+            {
+              "name": "Small Storage",
+              "robux": 99,
+              "price": 3.37
+            },
+            {
+              "name": "Lucky!",
+              "robux": 99,
+              "price": 3.37
+            },
+            {
+              "name": "Big Storage",
+              "robux": 199,
+              "price": 6.77
+            },
+            {
+              "name": "Extra Titan",
+              "robux": 299,
+              "price": 10.17
+            },
+            {
+              "name": "Double Coins",
+              "robux": 299,
+              "price": 10.17
+            },
+            {
+              "name": "Extra Stand",
+              "robux": 299,
+              "price": 10.17
+            },
+            {
+              "name": "Vip",
+              "robux": 299,
+              "price": 10.17
+            },
+            {
+              "name": "Double Damage",
+              "robux": 349,
+              "price": 11.87
+            },
+            {
+              "name": "Double Energy",
+              "robux": 349,
+              "price": 11.87
+            },
+            {
+              "name": "Double Exp",
+              "robux": 399,
+              "price": 13.57
+            },
+            {
+              "name": "Double Souls",
+              "robux": 399,
+              "price": 13.57
+            },
+            {
+              "name": "Fast Stars Open",
+              "robux": 399,
+              "price": 13.57
+            },
+            {
+              "name": "Multi Open",
+              "robux": 399,
+              "price": 13.57
+            },
+            {
+              "name": "More Equips",
+              "robux": 499,
+              "price": 16.97
+            },
+            {
+              "name": "Double Weapon",
+              "robux": 499,
+              "price": 16.97
+            },
+            {
+              "name": "Multi Roll",
+              "robux": 499,
+              "price": 16.97
+            },
+            {
+              "name": "Fast Roll",
+              "robux": 499,
+              "price": 16.97
+            },
+            {
+              "name": "Super Lucky!",
+              "robux": 599,
+              "price": 20.37
+            },
+            {
+              "name": "Extra Champions Equips",
+              "robux": 599,
+              "price": 20.37
+            },
+            {
+              "name": "Triple Weapon",
+              "robux": 599,
+              "price": 20.37
+            },
+            {
+              "name": "Remote Access",
+              "robux": 799,
+              "price": 27.17
+            },
+            {
+              "name": "Ultra Lucky!",
+              "robux": 1299,
+              "price": 44.17
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Anime Fighters Simulator",
+      "emoji": "🥊",
+      "group": "Anime & Luta",
+      "categories": [
+        {
+          "name": "Gamepass",
+          "products": [
+            {
+              "name": "Corrida",
+              "robux": 29,
+              "price": 0.99
+            },
+            {
+              "name": "Teletransporte",
+              "robux": 49,
+              "price": 1.67
+            },
+            {
+              "name": "Auto Clicker",
+              "robux": 69,
+              "price": 2.35
+            },
+            {
+              "name": "Sortudo",
+              "robux": 99,
+              "price": 3.37
+            },
+            {
+              "name": "Mochila pequena",
+              "robux": 99,
+              "price": 3.37
+            },
+            {
+              "name": "Ímã",
+              "robux": 149,
+              "price": 5.07
+            },
+            {
+              "name": "Slots do Cofre",
+              "robux": 199,
+              "price": 6.77
+            },
+            {
+              "name": "Mochila Relic",
+              "robux": 199,
+              "price": 6.77
+            },
+            {
+              "name": "Giro passivo instantâneo",
+              "robux": 199,
+              "price": 6.77
+            },
+            {
+              "name": "EXP em dobro",
+              "robux": 299,
+              "price": 10.17
+            },
+            {
+              "name": "VIP",
+              "robux": 399,
+              "price": 13.57
+            },
+            {
+              "name": "2x Iene",
+              "robux": 399,
+              "price": 13.57
+            },
+            {
+              "name": "Mochila grande",
+              "robux": 399,
+              "price": 13.57
+            },
+            {
+              "name": "Abertura rápida",
+              "robux": 399,
+              "price": 13.57
+            },
+            {
+              "name": "Recarga pela metade",
+              "robux": 399,
+              "price": 13.57
+            },
+            {
+              "name": "2x Gotas",
+              "robux": 499,
+              "price": 16.97
+            },
+            {
+              "name": "Caça-níqueis Big Vault",
+              "robux": 499,
+              "price": 16.97
+            },
+            {
+              "name": "Ataque automático",
+              "robux": 499,
+              "price": 16.97
+            },
+            {
+              "name": "2x Sorte da Aura",
+              "robux": 499,
+              "price": 16.97
+            },
+            {
+              "name": "Equipamento extra",
+              "robux": 599,
+              "price": 20.37
+            },
+            {
+              "name": "Mochila Mega",
+              "robux": 649,
+              "price": 22.07
+            },
+            {
+              "name": "Super sortudo",
+              "robux": 699,
+              "price": 23.77
+            },
+            {
+              "name": "Aberto para vários",
+              "robux": 799,
+              "price": 27.17
+            },
+            {
+              "name": "Premium Pass",
+              "robux": 799,
+              "price": 27.17
+            },
+            {
+              "name": "Sorte Passiva",
+              "robux": 999,
+              "price": 33.97
+            },
+            {
+              "name": "Grimório da Sorte",
+              "robux": 999,
+              "price": 33.97
+            },
+            {
+              "name": "Extremamente sortudo",
+              "robux": 1999,
+              "price": 67.97
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Anime Vanguards",
+      "emoji": "🛡️",
+      "group": "Anime & Luta",
+      "categories": [
+        {
+          "name": "Gamepass",
+          "products": [
+            {
+              "name": "Extra Unit Storage",
+              "robux": 149,
+              "price": 5.07
+            },
+            {
+              "name": "V.I.P",
+              "robux": 299,
+              "price": 10.17
+            },
+            {
+              "name": "Display All Units",
+              "robux": 599,
+              "price": 20.37
+            },
+            {
+              "name": "Premium Pass",
+              "robux": 799,
+              "price": 27.17
+            },
+            {
+              "name": "Skip 10 Levels",
+              "robux": 999,
+              "price": 33.97
+            },
+            {
+              "name": "Shiny Hunter",
+              "robux": 1299,
+              "price": 44.17
+            },
+            {
+              "name": "Pass",
+              "robux": 4999,
+              "price": 169.97
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Anime Weapons",
+      "emoji": "🗡️",
+      "group": "Anime & Luta",
+      "categories": [
+        {
+          "name": "Gamepass",
+          "products": [
+            {
+              "name": "Magnet",
+              "robux": 149,
+              "price": 5.07
+            },
+            {
+              "name": "Fast Click",
+              "robux": 199,
+              "price": 6.77
+            },
+            {
+              "name": "Stars Inventory",
+              "robux": 249,
+              "price": 8.47
+            },
+            {
+              "name": "Arsenal Inventory",
+              "robux": 249,
+              "price": 8.47
+            },
+            {
+              "name": "Luck",
+              "robux": 299,
+              "price": 10.17
+            },
+            {
+              "name": "Meteor Shower",
+              "robux": 299,
+              "price": 10.17
+            },
+            {
+              "name": "2x Mastery",
+              "robux": 499,
+              "price": 16.97
+            },
+            {
+              "name": "Open Multiple",
+              "robux": 499,
+              "price": 16.97
+            },
+            {
+              "name": "+1 Stand",
+              "robux": 499,
+              "price": 16.97
+            },
+            {
+              "name": "+2 Stars Equip",
+              "robux": 499,
+              "price": 16.97
+            },
+            {
+              "name": "+1 Gacha",
+              "robux": 499,
+              "price": 16.97
+            },
+            {
+              "name": "Vip",
+              "robux": 499,
+              "price": 16.97
+            },
+            {
+              "name": "2x Damage",
+              "robux": 499,
+              "price": 16.97
+            },
+            {
+              "name": "Insta Roll",
+              "robux": 499,
+              "price": 16.97
+            },
+            {
+              "name": "Fast Open",
+              "robux": 499,
+              "price": 16.97
+            },
+            {
+              "name": "+1 Shadow",
+              "robux": 499,
+              "price": 16.97
+            },
+            {
+              "name": "2x Yen",
+              "robux": 499,
+              "price": 16.97
+            },
+            {
+              "name": "2x Stars Experience",
+              "robux": 499,
+              "price": 16.97
+            },
+            {
+              "name": "2x Experience",
+              "robux": 499,
+              "price": 16.97
+            },
+            {
+              "name": "Super Luck",
+              "robux": 599,
+              "price": 20.37
+            },
+            {
+              "name": "+50% Drops",
+              "robux": 999,
+              "price": 33.97
+            },
+            {
+              "name": "Ultra Luck",
+              "robux": 999,
+              "price": 33.97
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Blox fruits",
+      "emoji": "🍎",
+      "group": "Aventura & Diversos",
+      "categories": [
+        {
+          "name": "Gamepass",
+          "products": [
+            {
+              "name": "Rocket",
+              "robux": 50,
+              "price": 1.7
+            },
+            {
+              "name": "Spin",
+              "robux": 75,
+              "price": 2.55
+            },
+            {
+              "name": "Blade",
+              "robux": 100,
+              "price": 3.4
+            },
+            {
+              "name": "Spring",
+              "robux": 180,
+              "price": 6.12
+            },
+            {
+              "name": "Bomb",
+              "robux": 220,
+              "price": 7.48
+            },
+            {
+              "name": "Smoke",
+              "robux": 250,
+              "price": 8.5
+            },
+            {
+              "name": "Fast Boats",
+              "robux": 350,
+              "price": 11.9
+            },
+            {
+              "name": "2x Boss Drop Chance",
+              "robux": 350,
+              "price": 11.9
+            },
+            {
+              "name": "Spike",
+              "robux": 380,
+              "price": 12.92
+            },
+            {
+              "name": "+1 Fruit Storage",
+              "robux": 400,
+              "price": 13.6
+            },
+            {
+              "name": "2x Mastery",
+              "robux": 450,
+              "price": 15.3
+            },
+            {
+              "name": "2x Money",
+              "robux": 450,
+              "price": 15.3
+            },
+            {
+              "name": "Flame",
+              "robux": 550,
+              "price": 18.7
+            },
+            {
+              "name": "Ice",
+              "robux": 750,
+              "price": 25.5
+            },
+            {
+              "name": "Sand",
+              "robux": 850,
+              "price": 28.9
+            },
+            {
+              "name": "Dark",
+              "robux": 950,
+              "price": 32.3
+            },
+            {
+              "name": "Eagle",
+              "robux": 975,
+              "price": 33.15
+            },
+            {
+              "name": "Diamond",
+              "robux": 1000,
+              "price": 34.0
+            },
+            {
+              "name": "Light",
+              "robux": 1100,
+              "price": 37.4
+            },
+            {
+              "name": "Dark Blade",
+              "robux": 1200,
+              "price": 40.8
+            },
+            {
+              "name": "Rubber",
+              "robux": 1200,
+              "price": 40.8
+            },
+            {
+              "name": "Ghost",
+              "robux": 1275,
+              "price": 43.35
+            },
+            {
+              "name": "Magma",
+              "robux": 1300,
+              "price": 44.2
+            },
+            {
+              "name": "Quake",
+              "robux": 1500,
+              "price": 51.0
+            },
+            {
+              "name": "Buddha",
+              "robux": 1650,
+              "price": 56.1
+            },
+            {
+              "name": "Love",
+              "robux": 1700,
+              "price": 57.8
+            },
+            {
+              "name": "Creation",
+              "robux": 1750,
+              "price": 59.5
+            },
+            {
+              "name": "Spider",
+              "robux": 1800,
+              "price": 61.2
+            },
+            {
+              "name": "Sound",
+              "robux": 1900,
+              "price": 64.6
+            },
+            {
+              "name": "Portal",
+              "robux": 2000,
+              "price": 68.0
+            },
+            {
+              "name": "Phoenix",
+              "robux": 2000,
+              "price": 68.0
+            },
+            {
+              "name": "Lightning",
+              "robux": 2100,
+              "price": 71.4
+            },
+            {
+              "name": "Pain",
+              "robux": 2200,
+              "price": 74.8
+            },
+            {
+              "name": "Blizzard",
+              "robux": 2250,
+              "price": 76.5
+            },
+            {
+              "name": "Gravity",
+              "robux": 2300,
+              "price": 78.2
+            },
+            {
+              "name": "Mammoth",
+              "robux": 2350,
+              "price": 79.9
+            },
+            {
+              "name": "T-Rex",
+              "robux": 2350,
+              "price": 79.9
+            },
+            {
+              "name": "Dough",
+              "robux": 2400,
+              "price": 81.6
+            },
+            {
+              "name": "Shadow",
+              "robux": 2425,
+              "price": 82.45
+            },
+            {
+              "name": "Venom",
+              "robux": 2450,
+              "price": 83.3
+            },
+            {
+              "name": "Gas",
+              "robux": 2500,
+              "price": 85.0
+            },
+            {
+              "name": "Spirit",
+              "robux": 2550,
+              "price": 86.7
+            },
+            {
+              "name": "Fruit Notifier",
+              "robux": 2700,
+              "price": 91.8
+            },
+            {
+              "name": "Yeti",
+              "robux": 2999,
+              "price": 101.97
+            },
+            {
+              "name": "Tiger",
+              "robux": 3000,
+              "price": 102.0
+            },
+            {
+              "name": "Kitsune",
+              "robux": 4000,
+              "price": 136.0
+            },
+            {
+              "name": "Control",
+              "robux": 4000,
+              "price": 136.0
+            },
+            {
+              "name": "Dragon",
+              "robux": 5000,
+              "price": 170.0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Blue Lock: Rivals",
+      "emoji": "⚽",
+      "group": "Aventura & Diversos",
+      "categories": [
+        {
+          "name": "Gamepass",
+          "products": [
+            {
+              "name": "Skip Spin",
+              "robux": 99,
+              "price": 3.37
+            },
+            {
+              "name": "Servidores Privados",
+              "robux": 100,
+              "price": 3.4
+            },
+            {
+              "name": "Slot de Styles 2",
+              "robux": 113,
+              "price": 3.84
+            },
+            {
+              "name": "Slot de flow 2",
+              "robux": 113,
+              "price": 3.84
+            },
+            {
+              "name": "Som do Gol",
+              "robux": 149,
+              "price": 5.07
+            },
+            {
+              "name": "Som de Quebra de Tornozelo",
+              "robux": 149,
+              "price": 5.07
+            },
+            {
+              "name": "Roupas do Despertar",
+              "robux": 149,
+              "price": 5.07
+            },
+            {
+              "name": "Toxic Emotes",
+              "robux": 199,
+              "price": 6.77
+            },
+            {
+              "name": "Slot de flow 3",
+              "robux": 225,
+              "price": 7.65
+            },
+            {
+              "name": "Slot De Styles 3",
+              "robux": 229,
+              "price": 7.79
+            },
+            {
+              "name": "Slot de flow 4",
+              "robux": 299,
+              "price": 10.17
+            },
+            {
+              "name": "Slot De Styles 4",
+              "robux": 299,
+              "price": 10.17
+            },
+            {
+              "name": "Slot De Styles 5",
+              "robux": 379,
+              "price": 12.89
+            },
+            {
+              "name": "Slot de flow 5",
+              "robux": 379,
+              "price": 12.89
+            },
+            {
+              "name": "Anime Emotes",
+              "robux": 399,
+              "price": 13.57
+            },
+            {
+              "name": "Slot De Styles 6",
+              "robux": 449,
+              "price": 15.27
+            },
+            {
+              "name": "Slot de flow 6",
+              "robux": 449,
+              "price": 15.27
+            },
+            {
+              "name": "Slot de flow 7",
+              "robux": 499,
+              "price": 16.97
+            },
+            {
+              "name": "Slot De Styles 7",
+              "robux": 499,
+              "price": 16.97
+            },
+            {
+              "name": "VIP",
+              "robux": 499,
+              "price": 16.97
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Brookhaven",
+      "emoji": "🏘️",
+      "group": "Aventura & Diversos",
+      "categories": [
+        {
+          "name": "Gamepass",
+          "products": [
+            {
+              "name": "Vehicle Upgrade",
+              "robux": 30,
+              "price": 1.02
+            },
+            {
+              "name": "On Demand Fire",
+              "robux": 50,
+              "price": 1.7
+            },
+            {
+              "name": "Horse Upgrade",
+              "robux": 99,
+              "price": 3.37
+            },
+            {
+              "name": "Penthouse",
+              "robux": 150,
+              "price": 5.1
+            },
+            {
+              "name": "Music Unlocked",
+              "robux": 199,
+              "price": 6.77
+            },
+            {
+              "name": "Vehicle Speed Unlock",
+              "robux": 199,
+              "price": 6.77
+            },
+            {
+              "name": "Premium",
+              "robux": 275,
+              "price": 9.35
+            },
+            {
+              "name": "Boat Pack",
+              "robux": 299,
+              "price": 10.17
+            },
+            {
+              "name": "Theme Pack",
+              "robux": 299,
+              "price": 10.17
+            },
+            {
+              "name": "Vehicle Customization",
+              "robux": 399,
+              "price": 13.57
+            },
+            {
+              "name": "Disaster Pass",
+              "robux": 499,
+              "price": 16.97
+            },
+            {
+              "name": "Land Unlocked",
+              "robux": 499,
+              "price": 16.97
+            },
+            {
+              "name": "Estates Unlocked",
+              "robux": 799,
+              "price": 27.17
+            },
+            {
+              "name": "Vehicle Pack",
+              "robux": 799,
+              "price": 27.17
+            },
+            {
+              "name": "VIP",
+              "robux": 999,
+              "price": 33.97
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Forsaken",
+      "emoji": "💀",
+      "group": "Aventura & Diversos",
+      "categories": [
+        {
+          "name": "Gamepass",
+          "products": [
+            {
+              "name": "+250 Points",
+              "robux": 100,
+              "price": 3.4
+            },
+            {
+              "name": "Additional Emote Wheel",
+              "robux": 199,
+              "price": 6.77
+            },
+            {
+              "name": "+500 Points",
+              "robux": 200,
+              "price": 6.8
+            },
+            {
+              "name": "+1000 Points",
+              "robux": 400,
+              "price": 13.6
+            },
+            {
+              "name": "Vip",
+              "robux": 799,
+              "price": 27.17
+            },
+            {
+              "name": "+2000 Points",
+              "robux": 800,
+              "price": 27.2
+            },
+            {
+              "name": "+5000 Points",
+              "robux": 2000,
+              "price": 68.0
+            },
+            {
+              "name": "+10000 Points",
+              "robux": 3900,
+              "price": 132.6
+            },
+            {
+              "name": "+20000 Points",
+              "robux": 7600,
+              "price": 258.4
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Heroes Battlegrounds",
+      "emoji": "🦸",
+      "group": "Anime & Luta",
+      "categories": [
+        {
+          "name": "Gamepass",
+          "products": [
+            {
+              "name": "Emote Pages",
+              "robux": 95,
+              "price": 3.23
+            },
+            {
+              "name": "Toxic Emotes",
+              "robux": 95,
+              "price": 3.23
+            },
+            {
+              "name": "Custom Kill Sounds",
+              "robux": 199,
+              "price": 6.77
+            },
+            {
+              "name": "Custom Move Text",
+              "robux": 199,
+              "price": 6.77
+            },
+            {
+              "name": "Early Access",
+              "robux": 245,
+              "price": 8.33
+            },
+            {
+              "name": "Private Server+",
+              "robux": 499,
+              "price": 16.97
+            },
+            {
+              "name": "Vip",
+              "robux": 799,
+              "price": 27.17
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "INK GAME",
+      "emoji": "🖊️",
+      "group": "Aventura & Diversos",
+      "categories": [
+        {
+          "name": "Gamepass",
+          "products": [
+            {
+              "name": "Boost 0 ao 1",
+              "robux": 99,
+              "price": 3.37
+            },
+            {
+              "name": "Boost 1 ao 2",
+              "robux": 149,
+              "price": 5.07
+            },
+            {
+              "name": "Emote Pages",
+              "robux": 199,
+              "price": 6.77
+            },
+            {
+              "name": "Boost 2 ao 3",
+              "robux": 199,
+              "price": 6.77
+            },
+            {
+              "name": "95M Money",
+              "robux": 199,
+              "price": 6.77
+            },
+            {
+              "name": "Custom Player Tag",
+              "robux": 199,
+              "price": 6.77
+            },
+            {
+              "name": "Boost 3 ao 4",
+              "robux": 249,
+              "price": 8.47
+            },
+            {
+              "name": "2x Vote Count",
+              "robux": 249,
+              "price": 8.47
+            },
+            {
+              "name": "Boost 4 ao 5",
+              "robux": 299,
+              "price": 10.17
+            },
+            {
+              "name": "200M Money",
+              "robux": 399,
+              "price": 13.57
+            },
+            {
+              "name": "Private Server+",
+              "robux": 499,
+              "price": 16.97
+            },
+            {
+              "name": "260M Money",
+              "robux": 499,
+              "price": 16.97
+            },
+            {
+              "name": "Boost 5 ao 6",
+              "robux": 599,
+              "price": 20.37
+            },
+            {
+              "name": "Glass Manufacturer Vision",
+              "robux": 649,
+              "price": 22.07
+            },
+            {
+              "name": "VIP",
+              "robux": 649,
+              "price": 22.07
+            },
+            {
+              "name": "Permanent Guard",
+              "robux": 799,
+              "price": 27.17
+            },
+            {
+              "name": "456M Money",
+              "robux": 799,
+              "price": 27.17
+            },
+            {
+              "name": "1B Money",
+              "robux": 1499,
+              "price": 50.97
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Jujutsu Beatdown",
+      "emoji": "👊",
+      "group": "Anime & Luta",
+      "categories": [
+        {
+          "name": "Gamepass",
+          "products": [
+            {
+              "name": "Emotes Extras + Adesivos",
+              "robux": 119,
+              "price": 4.05
+            },
+            {
+              "name": "1075 G",
+              "robux": 120,
+              "price": 4.08
+            },
+            {
+              "name": "Som de Matar",
+              "robux": 149,
+              "price": 5.07
+            },
+            {
+              "name": "Roupas do Despertar",
+              "robux": 149,
+              "price": 5.07
+            },
+            {
+              "name": "Mochila de energia amaldiçoada",
+              "robux": 199,
+              "price": 6.77
+            },
+            {
+              "name": "Acesso Antecipado",
+              "robux": 299,
+              "price": 10.17
+            },
+            {
+              "name": "2700 G",
+              "robux": 300,
+              "price": 10.2
+            },
+            {
+              "name": "Privado Plus",
+              "robux": 399,
+              "price": 13.57
+            },
+            {
+              "name": "Vip",
+              "robux": 499,
+              "price": 16.97
+            },
+            {
+              "name": "5500 G",
+              "robux": 600,
+              "price": 20.4
+            },
+            {
+              "name": "8300 G",
+              "robux": 900,
+              "price": 30.6
+            },
+            {
+              "name": "11200 G",
+              "robux": 1200,
+              "price": 40.8
+            },
+            {
+              "name": "22750 G",
+              "robux": 2400,
+              "price": 81.6
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Jujutsu Shenanigans",
+      "emoji": "🌀",
+      "group": "Anime & Luta",
+      "categories": [
+        {
+          "name": "Gamepass",
+          "products": [
+            {
+              "name": "Som de matança personalizada",
+              "robux": 100,
+              "price": 3.4
+            },
+            {
+              "name": "Roupas do despertar",
+              "robux": 100,
+              "price": 3.4
+            },
+            {
+              "name": "Mais slot de Emoção",
+              "robux": 150,
+              "price": 5.1
+            },
+            {
+              "name": "Segunda página de emote",
+              "robux": 175,
+              "price": 5.95
+            },
+            {
+              "name": "Mais salvas de construção",
+              "robux": 175,
+              "price": 5.95
+            },
+            {
+              "name": "Acesso Antecipado",
+              "robux": 300,
+              "price": 10.2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Jujutsu: Zero",
+      "emoji": "⚡",
+      "group": "Anime & Luta",
+      "categories": [
+        {
+          "name": "Gamepass",
+          "products": [
+            {
+              "name": "¥2,500",
+              "robux": 49,
+              "price": 1.67
+            },
+            {
+              "name": "¥5,000",
+              "robux": 99,
+              "price": 3.37
+            },
+            {
+              "name": "500 Lumens",
+              "robux": 99,
+              "price": 3.37
+            },
+            {
+              "name": "Fast Clan Reroll",
+              "robux": 149,
+              "price": 5.07
+            },
+            {
+              "name": "¥25,000",
+              "robux": 199,
+              "price": 6.77
+            },
+            {
+              "name": "Lucky",
+              "robux": 199,
+              "price": 6.77
+            },
+            {
+              "name": "Supporter",
+              "robux": 199,
+              "price": 6.77
+            },
+            {
+              "name": "Bigger Clan Bag",
+              "robux": 299,
+              "price": 10.17
+            },
+            {
+              "name": "1,500 Lumens",
+              "robux": 299,
+              "price": 10.17
+            },
+            {
+              "name": "Yen Boost",
+              "robux": 399,
+              "price": 13.57
+            },
+            {
+              "name": "¥50,000",
+              "robux": 499,
+              "price": 16.97
+            },
+            {
+              "name": "XP Boost",
+              "robux": 599,
+              "price": 20.37
+            },
+            {
+              "name": "Mastery Boost",
+              "robux": 599,
+              "price": 20.37
+            },
+            {
+              "name": "Ultra Lucky",
+              "robux": 799,
+              "price": 27.17
+            },
+            {
+              "name": "6,000 Lumens",
+              "robux": 799,
+              "price": 27.17
+            },
+            {
+              "name": "15,000 Lumens",
+              "robux": 1999,
+              "price": 67.97
+            },
+            {
+              "name": "Special Grade",
+              "robux": 1999,
+              "price": 67.97
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Jump Showdown",
+      "emoji": "🏆",
+      "group": "Anime & Luta",
+      "categories": [
+        {
+          "name": "Gamepass",
+          "products": [
+            {
+              "name": "Kill Sounds",
+              "robux": 100,
+              "price": 3.4
+            },
+            {
+              "name": "Extra Emote Slots",
+              "robux": 100,
+              "price": 3.4
+            },
+            {
+              "name": "Awakening Outfits",
+              "robux": 150,
+              "price": 5.1
+            },
+            {
+              "name": "Early Access",
+              "robux": 299,
+              "price": 10.17
+            },
+            {
+              "name": "Private Server +",
+              "robux": 499,
+              "price": 16.97
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "King Legacy",
+      "emoji": "👑",
+      "group": "Aventura & Diversos",
+      "categories": [
+        {
+          "name": "Gamepass",
+          "products": [
+            {
+              "name": "Legacy Pose",
+              "robux": 350,
+              "price": 11.9
+            },
+            {
+              "name": "+1 Fruit Storage",
+              "robux": 375,
+              "price": 12.75
+            },
+            {
+              "name": "Coffin Boat",
+              "robux": 500,
+              "price": 17.0
+            },
+            {
+              "name": "2x Drop",
+              "robux": 750,
+              "price": 25.5
+            },
+            {
+              "name": "Night Blade",
+              "robux": 1000,
+              "price": 34.0
+            },
+            {
+              "name": "2x Money",
+              "robux": 1000,
+              "price": 34.0
+            },
+            {
+              "name": "+1 Slot (Passive)",
+              "robux": 1000,
+              "price": 34.0
+            },
+            {
+              "name": "Fruit Position",
+              "robux": 2500,
+              "price": 85.0
+            },
+            {
+              "name": "Conqueror",
+              "robux": 2500,
+              "price": 85.0
+            },
+            {
+              "name": "Pteranodon",
+              "robux": 3275,
+              "price": 111.35
+            },
+            {
+              "name": "Dragon",
+              "robux": 3250,
+              "price": 110.5
+            },
+            {
+              "name": "Phoenix",
+              "robux": 3125,
+              "price": 106.25
+            },
+            {
+              "name": "Toy",
+              "robux": 3000,
+              "price": 102.0
+            },
+            {
+              "name": "Demon",
+              "robux": 2925,
+              "price": 99.45
+            },
+            {
+              "name": "Dough",
+              "robux": 2850,
+              "price": 96.9
+            },
+            {
+              "name": "Melody",
+              "robux": 2750,
+              "price": 93.5
+            },
+            {
+              "name": "Tree",
+              "robux": 2500,
+              "price": 85.0
+            },
+            {
+              "name": "Gate",
+              "robux": 2350,
+              "price": 79.9
+            },
+            {
+              "name": "Magnet",
+              "robux": 2250,
+              "price": 76.5
+            },
+            {
+              "name": "Spirit",
+              "robux": 2250,
+              "price": 76.5
+            },
+            {
+              "name": "Gold",
+              "robux": 2000,
+              "price": 68.0
+            },
+            {
+              "name": "Quake",
+              "robux": 1800,
+              "price": 61.2
+            },
+            {
+              "name": "Rumble",
+              "robux": 1500,
+              "price": 51.0
+            },
+            {
+              "name": "Snow",
+              "robux": 1350,
+              "price": 45.9
+            },
+            {
+              "name": "Gas",
+              "robux": 1250,
+              "price": 42.5
+            },
+            {
+              "name": "Light",
+              "robux": 1200,
+              "price": 40.8
+            },
+            {
+              "name": "Magma",
+              "robux": 1150,
+              "price": 39.1
+            },
+            {
+              "name": "Flame",
+              "robux": 1150,
+              "price": 39.1
+            },
+            {
+              "name": "Ice",
+              "robux": 1100,
+              "price": 37.4
+            },
+            {
+              "name": "Spino",
+              "robux": 1100,
+              "price": 37.4
+            },
+            {
+              "name": "Mammoth",
+              "robux": 1100,
+              "price": 37.4
+            },
+            {
+              "name": "Control",
+              "robux": 1075,
+              "price": 36.55
+            },
+            {
+              "name": "Brachio",
+              "robux": 1075,
+              "price": 36.55
+            },
+            {
+              "name": "Gravity",
+              "robux": 1050,
+              "price": 35.7
+            },
+            {
+              "name": "Buddha",
+              "robux": 975,
+              "price": 33.15
+            },
+            {
+              "name": "Dark",
+              "robux": 975,
+              "price": 33.15
+            },
+            {
+              "name": "Venom",
+              "robux": 975,
+              "price": 33.15
+            },
+            {
+              "name": "Leopard",
+              "robux": 950,
+              "price": 32.3
+            },
+            {
+              "name": "Allo",
+              "robux": 950,
+              "price": 32.3
+            },
+            {
+              "name": "Sand",
+              "robux": 750,
+              "price": 25.5
+            },
+            {
+              "name": "Rubber",
+              "robux": 725,
+              "price": 24.65
+            },
+            {
+              "name": "String",
+              "robux": 700,
+              "price": 23.8
+            },
+            {
+              "name": "Shadow",
+              "robux": 650,
+              "price": 22.1
+            },
+            {
+              "name": "Smoke",
+              "robux": 625,
+              "price": 21.25
+            },
+            {
+              "name": "Love",
+              "robux": 600,
+              "price": 20.4
+            },
+            {
+              "name": "Wolf",
+              "robux": 500,
+              "price": 17.0
+            },
+            {
+              "name": "Telekinesis",
+              "robux": 450,
+              "price": 15.3
+            },
+            {
+              "name": "Barrier",
+              "robux": 400,
+              "price": 13.6
+            },
+            {
+              "name": "Giraffe",
+              "robux": 350,
+              "price": 11.9
+            },
+            {
+              "name": "Palm",
+              "robux": 300,
+              "price": 10.2
+            },
+            {
+              "name": "Spike",
+              "robux": 300,
+              "price": 10.2
+            },
+            {
+              "name": "Bomb",
+              "robux": 125,
+              "price": 4.25
+            },
+            {
+              "name": "Spin",
+              "robux": 75,
+              "price": 2.55
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Rebirth Champions: Ultimate",
+      "emoji": "🏅",
+      "group": "Simuladores & RPG",
+      "categories": [
+        {
+          "name": "Gamepass",
+          "products": [
+            {
+              "name": "Auto Clicker",
+              "robux": 79,
+              "price": 2.69
+            },
+            {
+              "name": "Auto Rebirth",
+              "robux": 149,
+              "price": 5.07
+            },
+            {
+              "name": "Mega Luck",
+              "robux": 199,
+              "price": 6.77
+            },
+            {
+              "name": "+2 Pet Equip",
+              "robux": 199,
+              "price": 6.77
+            },
+            {
+              "name": "Insane Farmer",
+              "robux": 299,
+              "price": 10.17
+            },
+            {
+              "name": "Faster Eggs Open",
+              "robux": 299,
+              "price": 10.17
+            },
+            {
+              "name": "Space Coins",
+              "robux": 399,
+              "price": 13.57
+            },
+            {
+              "name": "+3 Pet Equip",
+              "robux": 399,
+              "price": 13.57
+            },
+            {
+              "name": "Extra Egg",
+              "robux": 399,
+              "price": 13.57
+            },
+            {
+              "name": "Dungeon Coins",
+              "robux": 399,
+              "price": 13.57
+            },
+            {
+              "name": "Insane Lumberjack",
+              "robux": 399,
+              "price": 13.57
+            },
+            {
+              "name": "Mega Fragments Luck",
+              "robux": 399,
+              "price": 13.57
+            },
+            {
+              "name": "VIP",
+              "robux": 599,
+              "price": 20.37
+            },
+            {
+              "name": "Divine Hunter",
+              "robux": 799,
+              "price": 27.17
+            },
+            {
+              "name": "Ultra Luck",
+              "robux": 799,
+              "price": 27.17
+            },
+            {
+              "name": "Magic Eggs",
+              "robux": 799,
+              "price": 27.17
+            },
+            {
+              "name": "Shiny Hunter",
+              "robux": 799,
+              "price": 27.17
+            },
+            {
+              "name": "Secrets Hunter",
+              "robux": 799,
+              "price": 27.17
+            },
+            {
+              "name": "Buy All Gamepasses",
+              "robux": 6978,
+              "price": 237.25
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Saber Simulator",
+      "emoji": "🔱",
+      "group": "Simuladores & RPG",
+      "categories": [
+        {
+          "name": "Gamepass",
+          "products": [
+            {
+              "name": "x2 Speed",
+              "robux": 49,
+              "price": 1.67
+            },
+            {
+              "name": "Lucky",
+              "robux": 149,
+              "price": 5.07
+            },
+            {
+              "name": "VIP Improved 2",
+              "robux": 199,
+              "price": 6.77
+            },
+            {
+              "name": "Auto Hatch",
+              "robux": 199,
+              "price": 6.77
+            },
+            {
+              "name": "VIP Improved",
+              "robux": 199,
+              "price": 6.77
+            },
+            {
+              "name": "x2 Health",
+              "robux": 299,
+              "price": 10.17
+            },
+            {
+              "name": "x2 Damage & Boss Hits",
+              "robux": 299,
+              "price": 10.17
+            },
+            {
+              "name": "+350 Pet Inv",
+              "robux": 299,
+              "price": 10.17
+            },
+            {
+              "name": "Triple Hatch",
+              "robux": 349,
+              "price": 11.87
+            },
+            {
+              "name": "x2 Coins",
+              "robux": 399,
+              "price": 13.57
+            },
+            {
+              "name": "Fast Hatch",
+              "robux": 399,
+              "price": 13.57
+            },
+            {
+              "name": "x2 Element Points",
+              "robux": 399,
+              "price": 13.57
+            },
+            {
+              "name": "x2 Strength",
+              "robux": 399,
+              "price": 13.57
+            },
+            {
+              "name": "+1 Pet Equip",
+              "robux": 499,
+              "price": 16.97
+            },
+            {
+              "name": "Turbo Auto Swing",
+              "robux": 499,
+              "price": 16.97
+            },
+            {
+              "name": "Fast Swing",
+              "robux": 499,
+              "price": 16.97
+            },
+            {
+              "name": "Infinite DNA",
+              "robux": 899,
+              "price": 30.57
+            },
+            {
+              "name": "Double Saber x2",
+              "robux": 999,
+              "price": 33.97
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Steal a Brainrot",
+      "emoji": "🧠",
+      "group": "Aventura & Diversos",
+      "categories": [
+        {
+          "name": "Gamepass",
+          "products": [
+            {
+              "name": "Mythic",
+              "robux": 175,
+              "price": 5.95
+            },
+            {
+              "name": "Blackhole Slap",
+              "robux": 199,
+              "price": 6.77
+            },
+            {
+              "name": "2X Money",
+              "robux": 299,
+              "price": 10.17
+            },
+            {
+              "name": "Flying Carpet",
+              "robux": 375,
+              "price": 12.75
+            },
+            {
+              "name": "VIP",
+              "robux": 499,
+              "price": 16.97
+            },
+            {
+              "name": "Brainrot God",
+              "robux": 599,
+              "price": 20.37
+            },
+            {
+              "name": "Laser Gun",
+              "robux": 749,
+              "price": 25.47
+            },
+            {
+              "name": "Ban Hammer",
+              "robux": 1499,
+              "price": 50.97
+            },
+            {
+              "name": "Secret",
+              "robux": 2399,
+              "price": 81.57
+            },
+            {
+              "name": "Admin Panel",
+              "robux": 7499,
+              "price": 254.97
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Tap Simulator",
+      "emoji": "👆",
+      "group": "Simuladores & RPG",
+      "categories": [
+        {
+          "name": "Gamepass",
+          "products": [
+            {
+              "name": "+100 Slots",
+              "robux": 79,
+              "price": 2.69
+            },
+            {
+              "name": "Fast Hatch!",
+              "robux": 95,
+              "price": 3.23
+            },
+            {
+              "name": "Lucky Eggs!",
+              "robux": 149,
+              "price": 5.07
+            },
+            {
+              "name": "Auto Rebirth",
+              "robux": 199,
+              "price": 6.77
+            },
+            {
+              "name": "+2 Pet Equip",
+              "robux": 249,
+              "price": 8.47
+            },
+            {
+              "name": "+250 Slots",
+              "robux": 349,
+              "price": 11.87
+            },
+            {
+              "name": "Super Lucky!",
+              "robux": 649,
+              "price": 22.07
+            },
+            {
+              "name": "Unlimited Rebirth",
+              "robux": 699,
+              "price": 23.77
+            },
+            {
+              "name": "+4 Pet Equip",
+              "robux": 749,
+              "price": 25.47
+            },
+            {
+              "name": "Octo Hatch",
+              "robux": 849,
+              "price": 28.87
+            },
+            {
+              "name": "Secret Hunter",
+              "robux": 1499,
+              "price": 50.97
+            },
+            {
+              "name": "Magic Eggs!",
+              "robux": 1599,
+              "price": 54.37
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "The Forge",
+      "emoji": "🔨",
+      "group": "Simuladores & RPG",
+      "categories": [
+        {
+          "name": "Gamepass",
+          "products": [
+            {
+              "name": "3 XP Totem",
+              "robux": 129,
+              "price": 4.39
+            },
+            {
+              "name": "3 Vitality Totem",
+              "robux": 169,
+              "price": 5.75
+            },
+            {
+              "name": "3 Warrior Totem",
+              "robux": 169,
+              "price": 5.75
+            },
+            {
+              "name": "3 Miner Totem",
+              "robux": 169,
+              "price": 5.75
+            },
+            {
+              "name": "3 Luck Totem",
+              "robux": 169,
+              "price": 5.75
+            },
+            {
+              "name": "Double Storage",
+              "robux": 249,
+              "price": 8.47
+            },
+            {
+              "name": "Fast Forge",
+              "robux": 299,
+              "price": 10.17
+            },
+            {
+              "name": "Sell Anywhere",
+              "robux": 349,
+              "price": 11.87
+            },
+            {
+              "name": "Supporter",
+              "robux": 379,
+              "price": 12.89
+            },
+            {
+              "name": "Batter Forge",
+              "robux": 449,
+              "price": 15.27
+            },
+            {
+              "name": "Forge Anywhere",
+              "robux": 549,
+              "price": 18.67
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "The Strongest Battlegrounds",
+      "emoji": "💥",
+      "group": "Anime & Luta",
+      "categories": [
+        {
+          "name": "Gamepass",
+          "products": [
+            {
+              "name": "Random Emote",
+              "robux": 25,
+              "price": 0.85
+            },
+            {
+              "name": "1 Spin",
+              "robux": 79,
+              "price": 2.69
+            },
+            {
+              "name": "Extra Emote Slots",
+              "robux": 99,
+              "price": 3.37
+            },
+            {
+              "name": "Eternal Seal",
+              "robux": 99,
+              "price": 3.37
+            },
+            {
+              "name": "Awakening Outfit",
+              "robux": 99,
+              "price": 3.37
+            },
+            {
+              "name": "Emote Second Page",
+              "robux": 99,
+              "price": 3.37
+            },
+            {
+              "name": "5 Emotes",
+              "robux": 125,
+              "price": 4.25
+            },
+            {
+              "name": "Kill Sound",
+              "robux": 199,
+              "price": 6.77
+            },
+            {
+              "name": "3 Cosmetics",
+              "robux": 237,
+              "price": 8.06
+            },
+            {
+              "name": "10 Emotes",
+              "robux": 250,
+              "price": 8.5
+            },
+            {
+              "name": "VIP",
+              "robux": 299,
+              "price": 10.17
+            },
+            {
+              "name": "Shadow Eruption",
+              "robux": 299,
+              "price": 10.17
+            },
+            {
+              "name": "Early Access",
+              "robux": 299,
+              "price": 10.17
+            },
+            {
+              "name": "5 Cosmetics",
+              "robux": 395,
+              "price": 13.43
+            },
+            {
+              "name": "Private Servers+",
+              "robux": 499,
+              "price": 16.97
+            },
+            {
+              "name": "50 Emotes",
+              "robux": 1250,
+              "price": 42.5
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Anime Fighting Simulator",
+      "emoji": "🥋",
+      "group": "Anime & Luta",
+      "categories": [
+        {
+          "name": "Gamepass",
+          "products": [
+            {
+              "name": "Skip Capsule Opening",
+              "robux": 29,
+              "price": 0.99
+            },
+            {
+              "name": "Luck",
+              "robux": 115,
+              "price": 3.91
+            },
+            {
+              "name": "VIP",
+              "robux": 279,
+              "price": 9.49
+            },
+            {
+              "name": "x2 Chikara",
+              "robux": 225,
+              "price": 7.65
+            },
+            {
+              "name": "Super Luck",
+              "robux": 339,
+              "price": 11.53
+            },
+            {
+              "name": "x2 Durability",
+              "robux": 255,
+              "price": 8.67
+            },
+            {
+              "name": "x2 Sword",
+              "robux": 255,
+              "price": 8.67
+            },
+            {
+              "name": "x2 Chakra",
+              "robux": 255,
+              "price": 8.67
+            },
+            {
+              "name": "x2 Strength",
+              "robux": 255,
+              "price": 8.67
+            },
+            {
+              "name": "Chakra Healing",
+              "robux": 59,
+              "price": 2.01
+            },
+            {
+              "name": "x2 Yen",
+              "robux": 279,
+              "price": 9.49
+            },
+            {
+              "name": "x2 Agility",
+              "robux": 115,
+              "price": 3.91
+            },
+            {
+              "name": "Extra Champions",
+              "robux": 59,
+              "price": 2.01
+            },
+            {
+              "name": "Faster Flight",
+              "robux": 169,
+              "price": 5.75
+            },
+            {
+              "name": "Fruit Tracker",
+              "robux": 839,
+              "price": 28.53
+            },
+            {
+              "name": "x2 Speed",
+              "robux": 115,
+              "price": 3.91
+            },
+            {
+              "name": "Conceal Power",
+              "robux": 139,
+              "price": 4.73
+            },
+            {
+              "name": "All Gamepass Bundle",
+              "robux": 5399,
+              "price": 183.57
+            },
+            {
+              "name": "Currency Bundle",
+              "robux": 749,
+              "price": 25.47
+            },
+            {
+              "name": "Training Bundle",
+              "robux": 1849,
+              "price": 62.87
+            },
+            {
+              "name": "utility Bundle",
+              "robux": 3099,
+              "price": 105.37
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Fish It",
+      "emoji": "🐠",
+      "group": "Aventura & Diversos",
+      "categories": [
+        {
+          "name": "Gamepass",
+          "products": [
+            {
+              "name": "Small Luck",
+              "robux": 50,
+              "price": 1.7
+            },
+            {
+              "name": "Extra Luck",
+              "robux": 245,
+              "price": 8.33
+            },
+            {
+              "name": "More Mutations",
+              "robux": 295,
+              "price": 10.03
+            },
+            {
+              "name": "Advanced Luck",
+              "robux": 545,
+              "price": 18.53
+            },
+            {
+              "name": "VIP",
+              "robux": 445,
+              "price": 15.13
+            },
+            {
+              "name": "Double XP",
+              "robux": 195,
+              "price": 6.63
+            },
+            {
+              "name": "Sell Anywhere",
+              "robux": 315,
+              "price": 10.71
+            },
+            {
+              "name": "Mini Hoverboat",
+              "robux": 225,
+              "price": 7.65
+            },
+            {
+              "name": "Hyper Pack",
+              "robux": 999,
+              "price": 33.97
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Roll an Anime",
+      "emoji": "🎴",
+      "group": "Anime & Luta",
+      "categories": [
+        {
+          "name": "Gamepass",
+          "products": [
+            {
+              "name": "Vip",
+              "robux": 199,
+              "price": 6.77
+            },
+            {
+              "name": "Auto collect",
+              "robux": 85,
+              "price": 2.89
+            },
+            {
+              "name": "Auto Skip",
+              "robux": 45,
+              "price": 1.53
+            },
+            {
+              "name": "Mutation Buff",
+              "robux": 139,
+              "price": 4.73
+            },
+            {
+              "name": "Double Cash",
+              "robux": 115,
+              "price": 3.91
+            },
+            {
+              "name": "Serve luck 1 > 2x",
+              "robux": 149,
+              "price": 5.07
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Fisch",
+      "emoji": "🎣",
+      "group": "Aventura & Diversos",
+      "categories": [
+        {
+          "name": "Gamepass",
+          "products": [
+            {
+              "name": "Sell Anywhere",
+              "robux": 225,
+              "price": 7.65
+            },
+            {
+              "name": "Enchant Anywhere",
+              "robux": 135,
+              "price": 4.59
+            },
+            {
+              "name": "Appraise Anywhere",
+              "robux": 279,
+              "price": 9.49
+            },
+            {
+              "name": "Spawn Boat Anywhere",
+              "robux": 169,
+              "price": 5.75
+            },
+            {
+              "name": "Supporter",
+              "robux": 95,
+              "price": 3.23
+            },
+            {
+              "name": "Emote Pack",
+              "robux": 59,
+              "price": 2.01
+            },
+            {
+              "name": "Bobber Pack",
+              "robux": 59,
+              "price": 2.01
+            },
+            {
+              "name": "Double XP",
+              "robux": 135,
+              "price": 4.59
+            },
+            {
+              "name": "Appraisers Luck",
+              "robux": 169,
+              "price": 5.75
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Anime Duelists",
+      "emoji": "⚔️",
+      "group": "Anime & Luta",
+      "categories": [
+        {
+          "name": "Gamepass",
+          "products": [
+            {
+              "name": "Starter Pack",
+              "robux": 47,
+              "price": 1.6
+            },
+            {
+              "name": "Accessory Bundle",
+              "robux": 499,
+              "price": 16.97
+            },
+            {
+              "name": "Potion III Bundle",
+              "robux": 499,
+              "price": 16.97
+            },
+            {
+              "name": "Potion II Bundle",
+              "robux": 299,
+              "price": 10.17
+            },
+            {
+              "name": "Potion I Bundle",
+              "robux": 149,
+              "price": 5.07
+            },
+            {
+              "name": "All Gamepasses",
+              "robux": 4499,
+              "price": 152.97
+            },
+            {
+              "name": "Multi Open",
+              "robux": 279,
+              "price": 9.49
+            },
+            {
+              "name": "Ultra Luck",
+              "robux": 559,
+              "price": 19.01
+            },
+            {
+              "name": "Extra Exclusive",
+              "robux": 279,
+              "price": 9.49
+            },
+            {
+              "name": "Luck",
+              "robux": 59,
+              "price": 2.01
+            },
+            {
+              "name": "Fast Open",
+              "robux": 279,
+              "price": 9.49
+            },
+            {
+              "name": "Extra Drops",
+              "robux": 199,
+              "price": 6.77
+            },
+            {
+              "name": "Super Luck",
+              "robux": 279,
+              "price": 9.49
+            },
+            {
+              "name": "VIP",
+              "robux": 139,
+              "price": 4.73
+            },
+            {
+              "name": "1.5x Exp",
+              "robux": 279,
+              "price": 9.49
+            },
+            {
+              "name": "Shiny",
+              "robux": 225,
+              "price": 7.65
+            },
+            {
+              "name": "Extra Equip",
+              "robux": 279,
+              "price": 9.49
+            },
+            {
+              "name": "2x Coins",
+              "robux": 199,
+              "price": 6.77
+            },
+            {
+              "name": "Extra Storage",
+              "robux": 59,
+              "price": 2.01
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Mine a Mountain",
+      "emoji": "⛏️",
+      "group": "Simuladores & RPG",
+      "categories": [
+        {
+          "name": "Gamepass",
+          "products": [
+            {
+              "name": "x4 CARRY KG",
+              "robux": 179,
+              "price": 6.09
+            },
+            {
+              "name": "x2 Speed",
+              "robux": 15,
+              "price": 0.51
+            },
+            {
+              "name": "INSTANT Mine",
+              "robux": 249,
+              "price": 8.47
+            },
+            {
+              "name": "x2 Coins",
+              "robux": 99,
+              "price": 3.37
+            },
+            {
+              "name": "No Fall Dmg",
+              "robux": 99,
+              "price": 3.37
+            },
+            {
+              "name": "x2 Crystals",
+              "robux": 299,
+              "price": 10.17
+            },
+            {
+              "name": "Push",
+              "robux": 39,
+              "price": 1.33
+            },
+            {
+              "name": "Fast Dig",
+              "robux": 199,
+              "price": 6.77
+            },
+            {
+              "name": "x8 Power",
+              "robux": 449,
+              "price": 15.27
+            },
+            {
+              "name": "VIP",
+              "robux": 399,
+              "price": 13.57
+            },
+            {
+              "name": "Starter Pack",
+              "robux": 9,
+              "price": 0.31
+            },
+            {
+              "name": "Diamond Pickaxe",
+              "robux": 499,
+              "price": 16.97
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Anime Expeditions",
+      "emoji": "🧭",
+      "group": "Anime & Luta",
+      "categories": [
+        {
+          "name": "Gamepass",
+          "products": [
+            {
+              "name": "Vip",
+              "robux": 399,
+              "price": 13.57
+            },
+            {
+              "name": "Shiny Hunter",
+              "robux": 999,
+              "price": 33.97
+            },
+            {
+              "name": "Display All Units",
+              "robux": 399,
+              "price": 13.57
+            },
+            {
+              "name": "Starter Bundle",
+              "robux": 249,
+              "price": 8.47
+            },
+            {
+              "name": "Release Bundle #1",
+              "robux": 999,
+              "price": 33.97
+            },
+            {
+              "name": "Release Bundle #2",
+              "robux": 3999,
+              "price": 135.97
+            },
+            {
+              "name": "Release Bundle #3",
+              "robux": 7999,
+              "price": 271.97
+            },
+            {
+              "name": "Release Bundle #4",
+              "robux": 9999,
+              "price": 339.97
+            },
+            {
+              "name": "Villain Bundle #1",
+              "robux": 999,
+              "price": 33.97
+            },
+            {
+              "name": "Villain Bundle #2",
+              "robux": 3999,
+              "price": 135.97
+            },
+            {
+              "name": "Villain Bundle #3",
+              "robux": 7999,
+              "price": 271.97
+            },
+            {
+              "name": "Premium Battlepass",
+              "robux": 999,
+              "price": 33.97
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Mini War",
+      "emoji": "🪖",
+      "group": "Aventura & Diversos",
+      "categories": [
+        {
+          "name": "Gamepass",
+          "products": [
+            {
+              "name": "Auto Collect!",
+              "robux": 29,
+              "price": 0.99
+            },
+            {
+              "name": "2x Building Speed",
+              "robux": 105,
+              "price": 3.57
+            },
+            {
+              "name": "2x Civilians!",
+              "robux": 39,
+              "price": 1.33
+            },
+            {
+              "name": "2x Money!",
+              "robux": 225,
+              "price": 7.65
+            },
+            {
+              "name": "x2 Research Speed",
+              "robux": 199,
+              "price": 6.77
+            },
+            {
+              "name": "Auto Sell!",
+              "robux": 59,
+              "price": 2.01
+            },
+            {
+              "name": "Extra General",
+              "robux": 799,
+              "price": 27.17
+            },
+            {
+              "name": "Resize Gamepass",
+              "robux": 99,
+              "price": 3.37
+            },
+            {
+              "name": "Custom Country",
+              "robux": 59,
+              "price": 2.01
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Sailor Piece",
+      "emoji": "⚓",
+      "group": "Anime & Luta",
+      "categories": [
+        {
+          "name": "Gamepass",
+          "products": [
+            {
+              "name": "2x Money",
+              "robux": 249,
+              "price": 8.47
+            },
+            {
+              "name": "2x Gems",
+              "robux": 399,
+              "price": 13.57
+            },
+            {
+              "name": "2x EXP",
+              "robux": 299,
+              "price": 10.17
+            },
+            {
+              "name": "2x Luck Drop",
+              "robux": 649,
+              "price": 22.07
+            },
+            {
+              "name": "2x Drops",
+              "robux": 849,
+              "price": 28.87
+            },
+            {
+              "name": "2x Mastery",
+              "robux": 699,
+              "price": 23.77
+            },
+            {
+              "name": "Cursed King",
+              "robux": 799,
+              "price": 27.17
+            },
+            {
+              "name": "Limitless Sorcerer",
+              "robux": 699,
+              "price": 23.77
+            },
+            {
+              "name": "Excalibur",
+              "robux": 499,
+              "price": 16.97
+            },
+            {
+              "name": "Manipulator",
+              "robux": 949,
+              "price": 32.27
+            },
+            {
+              "name": "Qin Shi",
+              "robux": 849,
+              "price": 28.87
+            },
+            {
+              "name": "Shadow",
+              "robux": 999,
+              "price": 33.97
+            },
+            {
+              "name": "Cursed Vessel",
+              "robux": 499,
+              "price": 16.97
+            },
+            {
+              "name": "Vampire King",
+              "robux": 899,
+              "price": 30.57
+            },
+            {
+              "name": "Strongest of Today",
+              "robux": 1049,
+              "price": 35.67
+            },
+            {
+              "name": "Strongest in History",
+              "robux": 1099,
+              "price": 37.37
+            },
+            {
+              "name": "Soul Reaper",
+              "robux": 899,
+              "price": 30.57
+            },
+            {
+              "name": "Conqueror Haki",
+              "robux": 999,
+              "price": 33.97
+            },
+            {
+              "name": "Slime",
+              "robux": 1149,
+              "price": 39.07
+            },
+            {
+              "name": "Yamato",
+              "robux": 1249,
+              "price": 42.47
+            },
+            {
+              "name": "King of Heroes",
+              "robux": 1199,
+              "price": 40.77
+            },
+            {
+              "name": "Demon King",
+              "robux": 1249,
+              "price": 42.47
+            },
+            {
+              "name": "Shadow Monarch",
+              "robux": 1299,
+              "price": 44.17
+            },
+            {
+              "name": "Sin of Pride",
+              "robux": 1249,
+              "price": 42.47
+            },
+            {
+              "name": "Blessed Maiden",
+              "robux": 1349,
+              "price": 45.87
+            },
+            {
+              "name": "True Manipulator",
+              "robux": 1399,
+              "price": 47.57
+            },
+            {
+              "name": "Corrupted Excalibur",
+              "robux": 1349,
+              "price": 45.87
+            },
+            {
+              "name": "Strongest Shinobi",
+              "robux": 1399,
+              "price": 47.57
+            },
+            {
+              "name": "Atomic",
+              "robux": 1449,
+              "price": 49.27
+            },
+            {
+              "name": "Abyssal Empress",
+              "robux": 1399,
+              "price": 47.57
+            },
+            {
+              "name": "Moon Slayer",
+              "robux": 1399,
+              "price": 47.57
+            },
+            {
+              "name": "Ice Queen",
+              "robux": 1399,
+              "price": 47.57
+            },
+            {
+              "name": "Solo Hunter",
+              "robux": 899,
+              "price": 30.57
+            },
+            {
+              "name": "The World",
+              "robux": 1499,
+              "price": 50.97
+            },
+            {
+              "name": "Cosmic Being",
+              "robux": 1499,
+              "price": 50.97
+            },
+            {
+              "name": "Great Mage",
+              "robux": 1499,
+              "price": 50.97
+            },
+            {
+              "name": "Dragon Goddess",
+              "robux": 1499,
+              "price": 50.97
+            },
+            {
+              "name": "Spirit Warrior",
+              "robux": 1599,
+              "price": 54.37
+            },
+            {
+              "name": "Sun God",
+              "robux": 1599,
+              "price": 54.37
+            },
+            {
+              "name": "Dual Wielder",
+              "robux": 1599,
+              "price": 54.37
+            },
+            {
+              "name": "Anti Magic",
+              "robux": 1499,
+              "price": 50.97
+            },
+            {
+              "name": "Black Reaper",
+              "robux": 1599,
+              "price": 54.37
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Sol's RNG",
+      "emoji": "🎲",
+      "group": "Simuladores & RPG",
+      "categories": [
+        {
+          "name": "Gamepass",
+          "products": [
+            {
+              "name": "Quick roll",
+              "robux": 60,
+              "price": 2.04
+            },
+            {
+              "name": "Starter Pack",
+              "robux": 29,
+              "price": 0.99
+            },
+            {
+              "name": "VIP+",
+              "robux": 200,
+              "price": 6.8
+            },
+            {
+              "name": "VIP",
+              "robux": 139,
+              "price": 4.73
+            },
+            {
+              "name": "MMerchant Teleporter",
+              "robux": 25,
+              "price": 0.85
+            },
+            {
+              "name": "RNG Premium Pass - Season VII",
+              "robux": 279,
+              "price": 9.49
+            },
+            {
+              "name": "Invisible Gear",
+              "robux": 45,
+              "price": 1.53
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Anime Story 2",
+      "emoji": "📖",
+      "group": "Anime & Luta",
+      "categories": [
+        {
+          "name": "Gamepass",
+          "products": [
+            {
+              "name": "3x Speed",
+              "robux": 599,
+              "price": 20.37
+            },
+            {
+              "name": "VIP",
+              "robux": 499,
+              "price": 16.97
+            },
+            {
+              "name": "Shiny Hunter",
+              "robux": 699,
+              "price": 23.77
+            },
+            {
+              "name": "Secret Hunter",
+              "robux": 799,
+              "price": 27.17
+            },
+            {
+              "name": "Super Storage",
+              "robux": 499,
+              "price": 16.97
+            },
+            {
+              "name": "Extra Storage",
+              "robux": 199,
+              "price": 6.77
+            },
+            {
+              "name": "Premium pass",
+              "robux": 799,
+              "price": 27.17
+            },
+            {
+              "name": "Skip 10 Levels",
+              "robux": 999,
+              "price": 33.97
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Anime Squadron",
+      "emoji": "✈️",
+      "group": "Anime & Luta",
+      "categories": [
+        {
+          "name": "Gamepass",
+          "products": [
+            {
+              "name": "2x Speed",
+              "robux": 499,
+              "price": 16.97
+            },
+            {
+              "name": "Premium",
+              "robux": 399,
+              "price": 13.57
+            },
+            {
+              "name": "Shiny Hunter",
+              "robux": 1199,
+              "price": 40.77
+            },
+            {
+              "name": "Upgrade-Bundle",
+              "robux": 79,
+              "price": 2.69
+            },
+            {
+              "name": "Summoner-Bundle",
+              "robux": 199,
+              "price": 6.77
+            },
+            {
+              "name": "Beginner-Bundle",
+              "robux": 499,
+              "price": 16.97
+            },
+            {
+              "name": "Update 2.0-Bundle",
+              "robux": 3499,
+              "price": 118.97
+            },
+            {
+              "name": "Black-Swordsman-Bundle",
+              "robux": 2999,
+              "price": 101.97
+            },
+            {
+              "name": "Premium Pass",
+              "robux": 499,
+              "price": 16.97
+            },
+            {
+              "name": "Skip 10 Tiers",
+              "robux": 999,
+              "price": 33.97
+            },
+            {
+              "name": "Premium Pass Bundle",
+              "robux": 3999,
+              "price": 135.97
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Noob Incremental",
+      "emoji": "📈",
+      "group": "Simuladores & RPG",
+      "categories": [
+        {
+          "name": "Gamepass",
+          "products": [
+            {
+              "name": "Rune Master",
+              "robux": 699,
+              "price": 23.77
+            },
+            {
+              "name": "Minion Master",
+              "robux": 599,
+              "price": 20.37
+            },
+            {
+              "name": "Prism Master",
+              "robux": 599,
+              "price": 20.37
+            },
+            {
+              "name": "Miner Master",
+              "robux": 699,
+              "price": 23.77
+            },
+            {
+              "name": "Noobs Master",
+              "robux": 499,
+              "price": 16.97
+            },
+            {
+              "name": "Swords Master",
+              "robux": 699,
+              "price": 23.77
+            },
+            {
+              "name": "Luck Master",
+              "robux": 499,
+              "price": 16.97
+            },
+            {
+              "name": "Minion Pack",
+              "robux": 299,
+              "price": 10.17
+            },
+            {
+              "name": "Dice Pack",
+              "robux": 299,
+              "price": 10.17
+            },
+            {
+              "name": "world Cup pack",
+              "robux": 299,
+              "price": 10.17
+            },
+            {
+              "name": "Luck Potion Bundle",
+              "robux": 1999,
+              "price": 67.97
+            },
+            {
+              "name": "Starter Bundle",
+              "robux": 49,
+              "price": 1.67
+            },
+            {
+              "name": "Gamepass Bundle",
+              "robux": 2799,
+              "price": 95.17
+            },
+            {
+              "name": "Rune Potions Bundle",
+              "robux": 1999,
+              "price": 67.97
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Catch And Tame!",
+      "emoji": "🐾",
+      "group": "Simuladores & RPG",
+      "categories": [
+        {
+          "name": "Gamepass",
+          "products": [
+            {
+              "name": "Auto Clicker!",
+              "robux": 99,
+              "price": 3.37
+            },
+            {
+              "name": "Pet Radar",
+              "robux": 249,
+              "price": 8.47
+            },
+            {
+              "name": "Ultra Luck!",
+              "robux": 899,
+              "price": 30.57
+            },
+            {
+              "name": "EXTRA SPEED!",
+              "robux": 49,
+              "price": 1.67
+            },
+            {
+              "name": "VIP",
+              "robux": 199,
+              "price": 6.77
+            },
+            {
+              "name": "2x FOOD Stock",
+              "robux": 199,
+              "price": 6.77
+            },
+            {
+              "name": "Lucky block",
+              "robux": 299,
+              "price": 10.17
+            },
+            {
+              "name": "Fishing Luck",
+              "robux": 699,
+              "price": 23.77
+            },
+            {
+              "name": "Breed Luck",
+              "robux": 299,
+              "price": 10.17
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Anime Card Collection",
+      "emoji": "🃏",
+      "group": "Anime & Luta",
+      "categories": [
+        {
+          "name": "Gamepass",
+          "products": [
+            {
+              "name": "Auto Buy",
+              "robux": 399,
+              "price": 13.57
+            },
+            {
+              "name": "Auto Collect",
+              "robux": 299,
+              "price": 10.17
+            },
+            {
+              "name": "Auto Play",
+              "robux": 399,
+              "price": 13.57
+            },
+            {
+              "name": "Auto Fish",
+              "robux": 199,
+              "price": 6.77
+            },
+            {
+              "name": "Double XP",
+              "robux": 199,
+              "price": 6.77
+            },
+            {
+              "name": "Faster Tower Speed",
+              "robux": 199,
+              "price": 6.77
+            },
+            {
+              "name": "2x Roll Speed",
+              "robux": 299,
+              "price": 10.17
+            },
+            {
+              "name": "2x Belt Speed",
+              "robux": 599,
+              "price": 20.37
+            },
+            {
+              "name": "Auto Collect Diamonds",
+              "robux": 299,
+              "price": 10.17
+            },
+            {
+              "name": "Maps Pirate",
+              "robux": 299,
+              "price": 10.17
+            },
+            {
+              "name": "Maps Dragon",
+              "robux": 299,
+              "price": 10.17
+            },
+            {
+              "name": "Maps Ninja",
+              "robux": 299,
+              "price": 10.17
+            },
+            {
+              "name": "Maps Note",
+              "robux": 299,
+              "price": 10.17
+            },
+            {
+              "name": "Maps Meister",
+              "robux": 299,
+              "price": 10.17
+            },
+            {
+              "name": "Maps Titan",
+              "robux": 299,
+              "price": 10.17
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Evade",
+      "emoji": "🏃",
+      "group": "Aventura & Diversos",
+      "categories": [
+        {
+          "name": "Gamepass",
+          "products": [
+            {
+              "name": "Poseidon Set",
+              "robux": 600,
+              "price": 20.4
+            },
+            {
+              "name": "Music Emote Pack 2",
+              "robux": 500,
+              "price": 17.0
+            },
+            {
+              "name": "Music Carry Pack 1",
+              "robux": 350,
+              "price": 11.9
+            },
+            {
+              "name": "Music Emotes Pack 1",
+              "robux": 500,
+              "price": 17.0
+            },
+            {
+              "name": "Boombox",
+              "robux": 300,
+              "price": 10.2
+            },
+            {
+              "name": "Animal Set",
+              "robux": 300,
+              "price": 10.2
+            },
+            {
+              "name": "Classic Set",
+              "robux": 600,
+              "price": 20.4
+            },
+            {
+              "name": "Crystalline Set",
+              "robux": 600,
+              "price": 20.4
+            },
+            {
+              "name": "Emote Pack",
+              "robux": 350,
+              "price": 11.9
+            },
+            {
+              "name": "Future Pack",
+              "robux": 400,
+              "price": 13.6
+            },
+            {
+              "name": "Military Set",
+              "robux": 700,
+              "price": 23.8
+            },
+            {
+              "name": "+6 Emote Slots",
+              "robux": 300,
+              "price": 10.2
+            },
+            {
+              "name": "Retro Cosmetics Set",
+              "robux": 500,
+              "price": 17.0
+            },
+            {
+              "name": "Worlds Collide",
+              "robux": 350,
+              "price": 11.9
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Run a Restaurant!",
+      "emoji": "🍽️",
+      "group": "Simuladores & RPG",
+      "categories": [
+        {
+          "name": "Gamepass",
+          "products": [
+            {
+              "name": "VIP!",
+              "robux": 399,
+              "price": 13.57
+            },
+            {
+              "name": "Cash Flow!",
+              "robux": 249,
+              "price": 8.47
+            },
+            {
+              "name": "Plot Expansion!",
+              "robux": 999,
+              "price": 33.97
+            },
+            {
+              "name": "Rare Customers!",
+              "robux": 629,
+              "price": 21.39
+            },
+            {
+              "name": "200 Diamonds",
+              "robux": 49,
+              "price": 1.67
+            },
+            {
+              "name": "800 Diamonds",
+              "robux": 199,
+              "price": 6.77
+            },
+            {
+              "name": "2000 Diamonds",
+              "robux": 479,
+              "price": 16.29
+            },
+            {
+              "name": "6500 Diamonds",
+              "robux": 1499,
+              "price": 50.97
+            },
+            {
+              "name": "22500 Diamonds",
+              "robux": 4999,
+              "price": 169.97
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Restaurant Tycoon 3",
+      "emoji": "👨‍🍳",
+      "group": "Simuladores & RPG",
+      "categories": [
+        {
+          "name": "Gamepass",
+          "products": [
+            {
+              "name": "Auto Money Collection",
+              "robux": 299,
+              "price": 10.17
+            },
+            {
+              "name": "Sandbox Mode",
+              "robux": 1499,
+              "price": 50.97
+            },
+            {
+              "name": "3x Customer Luck",
+              "robux": 399,
+              "price": 13.57
+            },
+            {
+              "name": "Chip Shop Diva Bundle",
+              "robux": 349,
+              "price": 11.87
+            },
+            {
+              "name": "2x Item Limits",
+              "robux": 299,
+              "price": 10.17
+            },
+            {
+              "name": "Allow Build Collisions",
+              "robux": 349,
+              "price": 11.87
+            },
+            {
+              "name": "Precision Build",
+              "robux": 599,
+              "price": 20.37
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Bloxburg",
+      "emoji": "🏡",
+      "group": "Aventura & Diversos",
+      "categories": [
+        {
+          "name": "Gamepass",
+          "products": [
+            {
+              "name": "Multiple Floors",
+              "robux": 300,
+              "price": 10.2
+            },
+            {
+              "name": "Premium",
+              "robux": 400,
+              "price": 13.6
+            },
+            {
+              "name": "Advanced Placing",
+              "robux": 200,
+              "price": 6.8
+            },
+            {
+              "name": "Large Plot",
+              "robux": 250,
+              "price": 8.5
+            },
+            {
+              "name": "Basements",
+              "robux": 100,
+              "price": 3.4
+            },
+            {
+              "name": "Excellent Employee",
+              "robux": 300,
+              "price": 10.2
+            },
+            {
+              "name": "Marvelous Mood",
+              "robux": 180,
+              "price": 6.12
+            },
+            {
+              "name": "Transform Plus",
+              "robux": 600,
+              "price": 20.4
+            },
+            {
+              "name": "50 Blockbux",
+              "robux": 15,
+              "price": 0.51
+            },
+            {
+              "name": "250 Blockbux",
+              "robux": 70,
+              "price": 2.38
+            },
+            {
+              "name": "500 Blockbux",
+              "robux": 120,
+              "price": 4.08
+            },
+            {
+              "name": "2.500 Blockbux",
+              "robux": 525,
+              "price": 17.85
+            },
+            {
+              "name": "5.000 Blockbux",
+              "robux": 975,
+              "price": 33.15
+            },
+            {
+              "name": "25.000 Blockbux",
+              "robux": 4500,
+              "price": 153.0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Slime RNG",
+      "emoji": "🟢",
+      "group": "Simuladores & RPG",
+      "categories": [
+        {
+          "name": "Gamepass",
+          "products": [
+            {
+              "name": "Double Roll",
+              "robux": 599,
+              "price": 20.37
+            },
+            {
+              "name": "Lucky Rolls",
+              "robux": 75,
+              "price": 2.55
+            },
+            {
+              "name": "Fast Roll",
+              "robux": 299,
+              "price": 10.17
+            },
+            {
+              "name": "VIP",
+              "robux": 399,
+              "price": 13.57
+            },
+            {
+              "name": "More Drops",
+              "robux": 249,
+              "price": 8.47
+            },
+            {
+              "name": "+1 Equip",
+              "robux": 129,
+              "price": 4.39
+            },
+            {
+              "name": "Auto Collect",
+              "robux": 199,
+              "price": 6.77
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Bubble Gum Simulator INFINITY",
+      "emoji": "🫧",
+      "group": "Simuladores & RPG",
+      "categories": [
+        {
+          "name": "Gamepass",
+          "products": [
+            {
+              "name": "Triple Hatch",
+              "robux": 499,
+              "price": 16.97
+            },
+            {
+              "name": "Double Luck",
+              "robux": 399,
+              "price": 13.57
+            },
+            {
+              "name": "Fast Hatch",
+              "robux": 199,
+              "price": 6.77
+            },
+            {
+              "name": "Infinity Gum",
+              "robux": 799,
+              "price": 27.17
+            },
+            {
+              "name": "Extra Equips",
+              "robux": 299,
+              "price": 10.17
+            },
+            {
+              "name": "Digital Storage",
+              "robux": 649,
+              "price": 22.07
+            },
+            {
+              "name": "Double Carnival Coins",
+              "robux": 299,
+              "price": 10.17
+            },
+            {
+              "name": "VIP",
+              "robux": 299,
+              "price": 10.17
+            },
+            {
+              "name": "Auto Fishing",
+              "robux": 349,
+              "price": 11.87
+            },
+            {
+              "name": "Double Currency",
+              "robux": 399,
+              "price": 13.57
+            },
+            {
+              "name": "Lucky Enchants",
+              "robux": 279,
+              "price": 9.49
+            },
+            {
+              "name": "Double Fishing XP",
+              "robux": 299,
+              "price": 10.17
+            },
+            {
+              "name": "Double Gems",
+              "robux": 199,
+              "price": 6.77
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,13 +1,6 @@
-# Nunca commitar token ou segredos
 .env
-.env.local
-*.env
-
-# Config gerado/alterado pelo site (use config.example.json como base)
-config.json
-message-ids.json
-
-# Dependências e logs
+.env.*
+!.env.example
 node_modules/
 npm-debug.log*
 .DS_Store

@@ -1,18 +1,17 @@
 const mongoose = require("mongoose");
 
-async function connectDB() {
-  const uri = process.env.MONGODB_URI;
+async function connectDatabase() {
+  const uri = process.env.MONGODB_URI?.trim();
   if (!uri) {
-    console.error("MONGODB_URI não está definida. Configure essa variável de ambiente.");
-    process.exit(1);
+    throw new Error("A variável MONGODB_URI não foi definida.");
   }
-  try {
-    await mongoose.connect(uri);
-    console.log("Conectado ao MongoDB Atlas.");
-  } catch (err) {
-    console.error("Falha ao conectar ao MongoDB:", err.message);
-    process.exit(1);
-  }
+
+  mongoose.set("strictQuery", true);
+  await mongoose.connect(uri, {
+    serverSelectionTimeoutMS: 15_000,
+  });
+
+  console.log("Catálogo conectado ao MongoDB.");
 }
 
-module.exports = { connectDB };
+module.exports = { connectDatabase };
