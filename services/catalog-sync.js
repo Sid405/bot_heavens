@@ -1,6 +1,7 @@
 const importData = require("../data/catalog-import.json");
 const Catalog = require("../models/Catalog");
 
+const OLD_BRL_PER_ROBUX = 0.034;
 const BRL_PER_ROBUX = 0.03499;
 
 function normalizeKey(value) {
@@ -15,10 +16,26 @@ function normalizeGameName(value) {
   return normalizeKey(value);
 }
 
+function roundBRL(value) {
+  return Math.round(Number(value) * 100) / 100;
+}
+
 function calculateProductPrice(robux) {
   const amount = Number(robux);
   if (!Number.isFinite(amount) || amount < 0) return null;
-  return Math.round(amount * BRL_PER_ROBUX * 100) / 100;
+  return roundBRL(amount * BRL_PER_ROBUX);
+}
+
+function inferRobuxFromLegacyPrice(price) {
+  const amount = Number(price);
+  if (!Number.isFinite(amount) || amount < 0) return null;
+
+  const inferredRobux = Math.round(amount / OLD_BRL_PER_ROBUX);
+  const expectedOldPrice = roundBRL(inferredRobux * OLD_BRL_PER_ROBUX);
+
+  // Só aceita a inferência quando o preço atual realmente bate com a fórmula antiga.
+  if (Math.abs(expectedOldPrice - amount) > 0.011) return null;
+  return inferredRobux;
 }
 
 function normalizeImportedCategories(categories) {
@@ -63,9 +80,11 @@ function buildImportedProductLookup(importedGame) {
 
 function syncExistingGamePrices(existingGame, importedGame) {
   const lookup = buildImportedProductLookup(importedGame);
-  let matchedProducts = 0;
+  let sourceMatched = 0;
+  let existingRobuxUsed = 0;
+  let legacyPriceInferred = 0;
   let updatedProducts = 0;
-  let unmatchedProducts = 0;
+  let skippedProducts = 0;
 
   for (const category of existingGame.categories || []) {
     const categoryProducts = lookup.byCategory.get(normalizeKey(category.name));
@@ -75,14 +94,24 @@ function syncExistingGamePrices(existingGame, importedGame) {
       const sourceProduct =
         categoryProducts?.get(productKey) || lookup.byUniqueName.get(productKey);
 
-      if (!sourceProduct || !Number.isFinite(Number(sourceProduct.robux))) {
-        unmatchedProducts += 1;
+      let robux = null;
+
+      if (sourceProduct && Number.isFinite(Number(sourceProduct.robux))) {
+        robux = Number(sourceProduct.robux);
+        sourceMatched += 1;
+      } else if (Number.isFinite(Number(product.robux)) && Number(product.robux) >= 0) {
+        robux = Number(product.robux);
+        existingRobuxUsed += 1;
+      } else {
+        robux = inferRobuxFromLegacyPrice(product.price);
+        if (robux !== null) legacyPriceInferred += 1;
+      }
+
+      if (robux === null) {
+        skippedProducts += 1;
         continue;
       }
 
-      matchedProducts += 1;
-
-      const robux = Number(sourceProduct.robux);
       const price = calculateProductPrice(robux);
       let changed = false;
 
@@ -100,7 +129,13 @@ function syncExistingGamePrices(existingGame, importedGame) {
     }
   }
 
-  return { matchedProducts, updatedProducts, unmatchedProducts };
+  return {
+    sourceMatched,
+    existingRobuxUsed,
+    legacyPriceInferred,
+    updatedProducts,
+    skippedProducts,
+  };
 }
 
 async function importMissingGames() {
@@ -111,9 +146,11 @@ async function importMissingGames() {
 
   let inserted = 0;
   let existingGames = 0;
-  let matchedProducts = 0;
+  let sourceMatched = 0;
+  let existingRobuxUsed = 0;
+  let legacyPriceInferred = 0;
   let updatedProducts = 0;
-  let unmatchedProducts = 0;
+  let skippedProducts = 0;
 
   for (const importedGame of importData.games) {
     const normalized = normalizeGameName(importedGame.name);
@@ -127,9 +164,11 @@ async function importMissingGames() {
       }
 
       existingGames += 1;
-      matchedProducts += result.matchedProducts;
+      sourceMatched += result.sourceMatched;
+      existingRobuxUsed += result.existingRobuxUsed;
+      legacyPriceInferred += result.legacyPriceInferred;
       updatedProducts += result.updatedProducts;
-      unmatchedProducts += result.unmatchedProducts;
+      skippedProducts += result.skippedProducts;
       continue;
     }
 
@@ -146,15 +185,20 @@ async function importMissingGames() {
   }
 
   console.log(
-    `Sincronização do catálogo: ${inserted} jogo(s) novo(s), ${existingGames} existente(s), ${matchedProducts} produto(s) encontrado(s), ${updatedProducts} produto(s) atualizado(s) para R$ 34,99/1.000 Robux, ${unmatchedProducts} produto(s) antigo(s) sem correspondência no arquivo-base.`
+    `Sincronização do catálogo: ${inserted} jogo(s) novo(s), ${existingGames} existente(s), ` +
+      `${sourceMatched} produto(s) pelo arquivo-base, ${existingRobuxUsed} pelo Robux salvo, ` +
+      `${legacyPriceInferred} inferido(s) pela fórmula antiga, ${updatedProducts} atualizado(s) para ` +
+      `R$ 34,99/1.000 Robux, ${skippedProducts} ignorado(s) por segurança.`
   );
 
   return {
     inserted,
     existingGames,
-    matchedProducts,
+    sourceMatched,
+    existingRobuxUsed,
+    legacyPriceInferred,
     updatedProducts,
-    unmatchedProducts,
+    skippedProducts,
   };
 }
 
