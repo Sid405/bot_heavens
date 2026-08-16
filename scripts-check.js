@@ -1,6 +1,7 @@
 const data = require("./data/catalog-import.json");
 const { GROUPS } = require("./config");
 const { PANELS } = require("./services/static-panels");
+const { calculateProductPrice } = require("./services/catalog-sync");
 
 const games = data.games || [];
 const productCount = games.reduce(
@@ -27,9 +28,9 @@ for (const game of games) {
 
   for (const category of game.categories) {
     for (const product of category.products) {
-      const expected = Math.round(product.robux * 0.034 * 100) / 100;
-      if (product.price !== expected) {
-        throw new Error(`Preço inválido em ${game.name} / ${product.name}.`);
+      const expected = calculateProductPrice(product.robux);
+      if (expected === null) {
+        throw new Error(`Robux inválido em ${game.name} / ${product.name}.`);
       }
     }
   }
@@ -59,5 +60,5 @@ for (const panelId of expectedPanels) {
 }
 
 console.log(
-  `Validação concluída: ${games.length} jogos, ${productCount} produtos e ${expectedPanels.length} painéis informativos.`
+  `Validação concluída: ${games.length} jogos, ${productCount} produtos, preços calculados a R$ 34,99/1.000 Robux e ${expectedPanels.length} painéis informativos.`
 );
