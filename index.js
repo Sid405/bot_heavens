@@ -17,10 +17,29 @@ const client = new Client({
   intents: [GatewayIntentBits.Guilds],
 });
 
+async function clearLegacySlashCommands(readyClient) {
+  try {
+    await readyClient.application.commands.set([]);
+
+    for (const guild of readyClient.guilds.cache.values()) {
+      await guild.commands.set([]).catch((error) => {
+        console.warn(
+          `Não foi possível limpar os comandos do servidor ${guild.id}: ${error.message}`
+        );
+      });
+    }
+
+    console.log("Comandos slash legados removidos.");
+  } catch (error) {
+    console.warn(`Não foi possível limpar comandos slash legados: ${error.message}`);
+  }
+}
+
 client.once(Events.ClientReady, async (readyClient) => {
   console.log(`Bot conectado: ${readyClient.user.tag}`);
 
   try {
+    await clearLegacySlashCommands(readyClient);
     await importMissingGames();
     await syncAllPanels(readyClient);
   } catch (error) {
